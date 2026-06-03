@@ -1,0 +1,40 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# --- Secrets / local config ---
+.env
+.env.local
+*.key
+
+# --- Node / frontend (Team Bravo will add this) ---
+node_modules/
+dist/
+build/
+.next/
+*.log
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Backups / temp ---
+*.BACKUP.*
+*.bak
+
+# --- Not part of the codebase ---
+ai_agents_challenge_designed_guide.pdf
+MedBridge_Tech_Architecture.docx
+MedBridge_Architecture*.html
+
+# --- Root duplicate data files (canonical copies live in
+#     medbridge/backend/medbridge_agent/data/) ---
+/hospital_registry.json
+/cost_matrix.json
+/country_doc_rules.json

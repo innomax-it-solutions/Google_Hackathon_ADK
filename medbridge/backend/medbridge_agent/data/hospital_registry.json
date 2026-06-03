@@ -1,0 +1,529 @@
+[
+  {
+    "id": "fortis-blr-001",
+    "name": "Fortis Hospitals",
+    "city": "Bangalore",
+    "state": "Karnataka",
+    "address": "111, Chord Rd, opp. Rajajinagar, 1st Block, Bengaluru, Karnataka 560086",
+    "specialties": [
+      "urology",
+      "neurosurgery",
+      "cardiac",
+      "orthopedics",
+      "oncology",
+      "gynecology",
+      "liver-transplant",
+      "ent"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.75,
+    "international_desk": true,
+    "branches": [
+      "Rajajinagar",
+      "Cunningham Rd",
+      "Naagarabhaavi"
+    ]
+  },
+  {
+    "id": "apollo-hyd-001",
+    "name": "Apollo Hospitals",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "address": "Apollo Health City, Road No 72, Jubilee Hills, Hyderabad, Telangana 500033",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "oncology",
+      "neurology",
+      "transplant",
+      "urology",
+      "gynecology"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.7,
+    "international_desk": true,
+    "branches": [
+      "Jubilee Hills",
+      "Hyderguda",
+      "Secunderabad",
+      "Financial District",
+      "Kanchan Bagh"
+    ]
+  },
+  {
+    "id": "apollo-che-001",
+    "name": "Apollo Hospitals",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "address": "21, Greams Lane, Off Greams Road, Chennai 600006",
+    "specialties": [
+      "cardiac",
+      "oncology",
+      "orthopedics",
+      "neurology",
+      "transplant",
+      "urology",
+      "ent",
+      "gynecology"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.72,
+    "international_desk": true,
+    "branches": [
+      "Greams Road",
+      "Vanagaram",
+      "Perungudi OMR",
+      "Tondiarpet",
+      "Proton Cancer Centre"
+    ]
+  },
+  {
+    "id": "apollo-blr-001",
+    "name": "Apollo Hospitals",
+    "city": "Bangalore",
+    "state": "Karnataka",
+    "address": "154/11, Bannerghatta Main Road, Bangalore, Karnataka 560076",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "oncology",
+      "neurology",
+      "urology",
+      "gynecology",
+      "transplant"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.73,
+    "international_desk": true,
+    "branches": [
+      "Bannerghatta Road",
+      "Electronic City",
+      "HSR Layout",
+      "Seshadripuram"
+    ]
+  },
+  {
+    "id": "apollo-del-001",
+    "name": "Apollo Hospitals",
+    "city": "Delhi",
+    "state": "Delhi",
+    "address": "Sarita Vihar, Delhi Mathura Road, New Delhi 110076",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "oncology",
+      "neurology",
+      "urology",
+      "transplant",
+      "gynecology"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.78,
+    "international_desk": true,
+    "branches": [
+      "Sarita Vihar",
+      "Defence Colony"
+    ]
+  },
+  {
+    "id": "apollo-mum-001",
+    "name": "Apollo Hospitals",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "address": "Plot #13, Parsik Hill Road, Sector-23, CBD Belapur, Navi Mumbai 400614",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "oncology",
+      "neurology",
+      "urology",
+      "gynecology"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.82,
+    "international_desk": true,
+    "branches": [
+      "Navi Mumbai"
+    ]
+  },
+  {
+    "id": "nikhil-hyd-001",
+    "name": "Nikhil Hospital",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "address": "Srinagar Colony Main Rd, SBH Colony, Ameerpet, Hyderabad, Telangana 500073",
+    "specialties": [
+      "cardiac",
+      "ent",
+      "general-surgery",
+      "gynecology",
+      "orthopedics",
+      "urology",
+      "neurosurgery",
+      "vascular-surgery"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.45,
+    "international_desk": false,
+    "rohini_id": "8900080353886",
+    "pan": "AABCN8436H"
+  },
+  {
+    "id": "kims-hyd-001",
+    "name": "KIMS Hospital",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "address": "Survey No. 40-46, Dargah Road, Prashant Hills, Gachibowli, Telangana 500032",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "neurology",
+      "oncology",
+      "urology",
+      "transplant",
+      "gynecology"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.65,
+    "international_desk": true,
+    "branches": [
+      "Gachibowli"
+    ]
+  },
+  {
+    "id": "kims-viz-001",
+    "name": "KIMS Icon Hospital",
+    "city": "Visakhapatnam",
+    "state": "Andhra Pradesh",
+    "address": "Kim's Icon Hospital Rd, Sheela Nagar, Gajuwaka, Andhra Pradesh 530012",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "neurology",
+      "oncology",
+      "urology",
+      "gynecology"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.6,
+    "international_desk": true,
+    "branches": [
+      "Visakhapatnam"
+    ]
+  },
+  {
+    "id": "medicover-hyd-001",
+    "name": "Medicover Hospitals",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "address": "Behind Cyber Towers, HUDA Techno Enclave, HITEC City, Hyderabad, Telangana 500081",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "oncology",
+      "neurology",
+      "urology",
+      "gynecology",
+      "general-surgery"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.62,
+    "international_desk": true,
+    "branches": [
+      "HITEC City",
+      "Financial District",
+      "Chanda Nagar",
+      "Secunderabad",
+      "Karimnagar",
+      "Warangal"
+    ]
+  },
+  {
+    "id": "virinchi-hyd-001",
+    "name": "Virinchi Hospital",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "address": "Virinchi Circle, 8-2-672/5-6, Road No 1, Banjara Hills, Hyderabad, Telangana 500034",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "neurology",
+      "oncology",
+      "urology",
+      "gynecology"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.58,
+    "international_desk": true,
+    "branches": [
+      "Banjara Hills"
+    ]
+  },
+  {
+    "id": "sims-che-001",
+    "name": "SIMS Hospital",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "address": "No.1, Jawaharlal Nehru Salai (100 Feet Road), Vadapalani, Chennai 600026",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "neurology",
+      "oncology",
+      "urology",
+      "gynecology",
+      "transplant"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.68,
+    "international_desk": true,
+    "branches": [
+      "Vadapalani"
+    ]
+  },
+  {
+    "id": "mgm-che-001",
+    "name": "MGM Hospital",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "address": "No 54, Old, 72, Nelson Manickam Rd, Aminjikarai, Chennai, Tamil Nadu 600029",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "general-surgery",
+      "gynecology",
+      "neurology",
+      "urology"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.55,
+    "international_desk": false,
+    "branches": [
+      "Aminjikarai"
+    ]
+  },
+  {
+    "id": "bewell-che-001",
+    "name": "Be Well Hospital",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "address": "No.1, Kannan Avenue, New Balaji Nagar Main Rd, East Tambaram, Chennai, Tamil Nadu 600073",
+    "specialties": [
+      "general-surgery",
+      "orthopedics",
+      "gynecology",
+      "ent",
+      "urology",
+      "cardiac"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.5,
+    "international_desk": false,
+    "branches": [
+      "Tambaram",
+      "T. Nagar",
+      "Kilpauk",
+      "Anna Nagar",
+      "Poonamallee"
+    ]
+  },
+  {
+    "id": "hosmat-blr-001",
+    "name": "HOSMAT Hospital",
+    "city": "Bangalore",
+    "state": "Karnataka",
+    "address": "45, Magrath Rd, Ashok Nagar, Bengaluru, Karnataka 560025",
+    "specialties": [
+      "orthopedics",
+      "general-surgery",
+      "neurology",
+      "ent",
+      "urology",
+      "gynecology"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.55,
+    "international_desk": false,
+    "branches": [
+      "Ashok Nagar",
+      "Kalyan Nagar",
+      "Sadashivanagar"
+    ]
+  },
+  {
+    "id": "vgm-cbe-001",
+    "name": "VGM Hospital",
+    "city": "Coimbatore",
+    "state": "Tamil Nadu",
+    "address": "2100, Trichy Rd, Singanallur, Coimbatore, Tamil Nadu 641005",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "urology",
+      "gynecology",
+      "general-surgery",
+      "neurology"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.48,
+    "international_desk": false,
+    "branches": [
+      "Singanallur"
+    ]
+  },
+  {
+    "id": "kg-cbe-001",
+    "name": "KG Hospital",
+    "city": "Coimbatore",
+    "state": "Tamil Nadu",
+    "address": "10 Shrivaari Ramakrishna Garden, Sathy Road, Coimbatore, Tamil Nadu 641006",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "oncology",
+      "gynecology",
+      "urology",
+      "general-surgery",
+      "ent"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.52,
+    "international_desk": false,
+    "branches": [
+      "Coimbatore",
+      "Tirupur",
+      "Erode"
+    ]
+  },
+  {
+    "id": "royalcare-cbe-001",
+    "name": "Royal Care Hospital",
+    "city": "Coimbatore",
+    "state": "Tamil Nadu",
+    "address": "No 1/520, Neelambur, Sulur Taluk, Coimbatore, Tamil Nadu 641062",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "neurology",
+      "urology",
+      "gynecology",
+      "general-surgery"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.5,
+    "international_desk": false,
+    "branches": [
+      "Coimbatore"
+    ]
+  },
+  {
+    "id": "paras-del-001",
+    "name": "Paras Hospital",
+    "city": "Gurugram",
+    "state": "Haryana",
+    "address": "Phase-I, C-1, Sushant Lok Rd, Sector 43, Gurugram, Haryana 122009",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "oncology",
+      "neurology",
+      "urology",
+      "gynecology",
+      "transplant"
+    ],
+    "tier": "A",
+    "mou_active": true,
+    "cost_index": 0.72,
+    "international_desk": true,
+    "branches": [
+      "Gurugram"
+    ]
+  },
+  {
+    "id": "sama-del-001",
+    "name": "Sama Hospital",
+    "city": "Delhi",
+    "state": "Delhi",
+    "address": "Sama Hospital, 8, Siri Fort Rd, Sector 3, Sadiq Nagar, New Delhi, Delhi 110049",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "general-surgery",
+      "gynecology",
+      "urology",
+      "ent"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.6,
+    "international_desk": false,
+    "branches": [
+      "South Delhi"
+    ]
+  },
+  {
+    "id": "tx-hyd-001",
+    "name": "TX Hospitals",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "address": "3-2-841/1, Kachiguda Station Rd, Hyderabad, Telangana 500027",
+    "specialties": [
+      "cardiac",
+      "orthopedics",
+      "general-surgery",
+      "gynecology",
+      "urology",
+      "ent",
+      "neurology"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.5,
+    "international_desk": false,
+    "branches": [
+      "Kachiguda",
+      "Banjara Hills",
+      "Uppal"
+    ]
+  },
+  {
+    "id": "whitelotus-mum-001",
+    "name": "White Lotus Hospital",
+    "city": "Navi Mumbai",
+    "state": "Maharashtra",
+    "address": "Plot no 1, Roadpali Rd, Sector 20, Kalamboli, Panvel, Maharashtra 410218",
+    "specialties": [
+      "general-surgery",
+      "orthopedics",
+      "gynecology",
+      "ent",
+      "urology",
+      "cardiac"
+    ],
+    "tier": "B",
+    "mou_active": true,
+    "cost_index": 0.55,
+    "international_desk": false,
+    "branches": [
+      "Panvel"
+    ]
+  }
+]

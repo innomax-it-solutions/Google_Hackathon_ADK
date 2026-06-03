@@ -1,0 +1,628 @@
+{
+  "_fx": {
+    "usd_to_inr": 86.0,
+    "note": "Indicative estimate based on June 2026 exchange rates."
+  },
+  "AE": {
+    "country_name": "United Arab Emirates",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Passport-size photographs (2, white background)",
+      "Hospital appointment letter / treatment confirmation",
+      "Medical records / diagnosis report",
+      "Travel health insurance",
+      "Bank statement (last 3 months, sufficient funds)",
+      "Return flight ticket",
+      "Hotel/accommodation booking"
+    ],
+    "recommended_docs": [
+      "Referral letter from home country doctor",
+      "Previous investigation reports (MRI/CT/blood work)",
+      "List of current medications",
+      "Emergency contact card"
+    ],
+    "notes": "UAE nationals and residents get Indian e-Medical Visa easily online. Attendant visa (1 companion) can be applied simultaneously.",
+    "currency": "AED",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Dubai (DXB)",
+      "Abu Dhabi (AUH)",
+      "Sharjah (SHJ)"
+    ]
+  },
+  "US": {
+    "country_name": "United States",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "5-7 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Passport-size photographs (2, white background)",
+      "Hospital appointment / treatment letter",
+      "Medical records and diagnosis",
+      "Travel health insurance",
+      "Bank statement (3 months)",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "US physician referral letter",
+      "Prior imaging (MRI, CT, X-Ray) in DICOM format",
+      "Current medication list",
+      "Insurance denial letter (if applicable)"
+    ],
+    "notes": "US citizens eligible for Indian e-Medical Visa. OCI/PIO card holders may enter without visa.",
+    "currency": "USD",
+    "direct_flights": true,
+    "flight_hubs": [
+      "New York (JFK)",
+      "Chicago (ORD)",
+      "Los Angeles (LAX)",
+      "San Francisco (SFO)"
+    ]
+  },
+  "GB": {
+    "country_name": "United Kingdom",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2, white background)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement (3 months)",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "GP referral letter",
+      "NHS treatment waiting-list letter",
+      "Prior investigations",
+      "Medication list"
+    ],
+    "notes": "UK nationals eligible for e-Medical Visa. OCI holders don't need a separate visa.",
+    "currency": "GBP",
+    "direct_flights": true,
+    "flight_hubs": [
+      "London Heathrow (LHR)",
+      "London Gatwick (LGW)",
+      "Manchester (MAN)"
+    ]
+  },
+  "CA": {
+    "country_name": "Canada",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "5-7 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Canadian physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Canadian citizens eligible for e-Medical Visa. OCI holders are exempt.",
+    "currency": "CAD",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Toronto (YYZ)",
+      "Vancouver (YVR)"
+    ]
+  },
+  "AU": {
+    "country_name": "Australia",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Australian GP referral letter",
+      "Investigation reports",
+      "Medication list"
+    ],
+    "notes": "Australian passport holders eligible for e-Medical Visa.",
+    "currency": "AUD",
+    "direct_flights": false,
+    "flight_hubs": [
+      "Sydney (SYD)",
+      "Melbourne (MEL)"
+    ]
+  },
+  "DE": {
+    "country_name": "Germany",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "German specialist referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "German nationals eligible for e-Medical Visa.",
+    "currency": "EUR",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Frankfurt (FRA)",
+      "Munich (MUC)"
+    ]
+  },
+  "FR": {
+    "country_name": "France",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "French physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "French nationals eligible for e-Medical Visa.",
+    "currency": "EUR",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Paris Charles de Gaulle (CDG)"
+    ]
+  },
+  "KW": {
+    "country_name": "Kuwait",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Kuwait physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Kuwait nationals eligible for Indian e-Medical Visa. Attendant visa available.",
+    "currency": "KWD",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Kuwait City (KWI)"
+    ]
+  },
+  "SA": {
+    "country_name": "Saudi Arabia",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Saudi physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Saudi nationals eligible for Indian e-Medical Visa.",
+    "currency": "SAR",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Riyadh (RUH)",
+      "Jeddah (JED)"
+    ]
+  },
+  "QA": {
+    "country_name": "Qatar",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Qatar physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Qatar nationals eligible for Indian e-Medical Visa.",
+    "currency": "QAR",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Doha (DOH)"
+    ]
+  },
+  "OM": {
+    "country_name": "Oman",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Oman physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Oman nationals eligible for Indian e-Medical Visa.",
+    "currency": "OMR",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Muscat (MCT)"
+    ]
+  },
+  "BH": {
+    "country_name": "Bahrain",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Bahrain physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Bahrain nationals eligible for Indian e-Medical Visa.",
+    "currency": "BHD",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Bahrain (BAH)"
+    ]
+  },
+  "SG": {
+    "country_name": "Singapore",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "2-4 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Singapore specialist referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Singapore passport holders eligible for e-Medical Visa.",
+    "currency": "SGD",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Singapore Changi (SIN)"
+    ]
+  },
+  "MY": {
+    "country_name": "Malaysia",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Malaysian physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Malaysia passport holders eligible for e-Medical Visa.",
+    "currency": "MYR",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Kuala Lumpur (KUL)"
+    ]
+  },
+  "NG": {
+    "country_name": "Nigeria",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "5-7 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Nigerian physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Nigerian nationals eligible for Indian e-Medical Visa.",
+    "currency": "NGN",
+    "direct_flights": false,
+    "flight_hubs": [
+      "Lagos (LOS)",
+      "Abuja (ABV)"
+    ]
+  },
+  "KE": {
+    "country_name": "Kenya",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Kenyan physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Kenyan nationals eligible for Indian e-Medical Visa.",
+    "currency": "KES",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Nairobi (NBO)"
+    ]
+  },
+  "PK": {
+    "country_name": "Pakistan",
+    "visa_required": true,
+    "visa_type": "Medical Visa (Embassy application required)",
+    "visa_duration_days": 90,
+    "visa_extendable": false,
+    "processing_days": "10-15 business days (embassy application)",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital invitation letter (original)",
+      "Medical records / diagnosis",
+      "Proof of funds",
+      "Return ticket",
+      "Local police verification certificate"
+    ],
+    "recommended_docs": [
+      "Pakistan physician referral",
+      "Imaging reports",
+      "NOC from local doctor"
+    ],
+    "notes": "Pakistan nationals must apply at Indian High Commission/Embassy in person. e-Medical Visa is not available for Pakistani nationals. Plan extra lead time.",
+    "currency": "PKR",
+    "direct_flights": false,
+    "flight_hubs": [
+      "Karachi (KHI)",
+      "Lahore (LHE)",
+      "Islamabad (ISB)"
+    ]
+  },
+  "BD": {
+    "country_name": "Bangladesh",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "3-5 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Bangladesh physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Bangladesh nationals among the most frequent medical tourists to India; e-Medical Visa is straightforward.",
+    "currency": "BDT",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Dhaka (DAC)"
+    ]
+  },
+  "LK": {
+    "country_name": "Sri Lanka",
+    "visa_required": true,
+    "visa_type": "e-Medical Visa",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "2-4 business days",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Photographs (2)",
+      "Hospital appointment letter",
+      "Medical records",
+      "Travel insurance",
+      "Bank statement",
+      "Return ticket",
+      "Accommodation proof"
+    ],
+    "recommended_docs": [
+      "Sri Lankan physician referral",
+      "Imaging reports",
+      "Medication list"
+    ],
+    "notes": "Sri Lankan nationals eligible for Indian e-Medical Visa.",
+    "currency": "LKR",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Colombo (CMB)"
+    ]
+  },
+  "NP": {
+    "country_name": "Nepal",
+    "visa_required": false,
+    "visa_type": "No visa required",
+    "visa_duration_days": null,
+    "visa_extendable": null,
+    "processing_days": "None",
+    "mandatory_docs": [
+      "Valid passport OR government-issued ID",
+      "Hospital appointment letter",
+      "Medical records / diagnosis"
+    ],
+    "recommended_docs": [
+      "Nepal physician referral",
+      "Imaging reports",
+      "Medication list",
+      "Return travel proof"
+    ],
+    "notes": "Nepali citizens enjoy visa-free entry to India. No prior visa arrangement needed.",
+    "currency": "NPR",
+    "direct_flights": true,
+    "flight_hubs": [
+      "Kathmandu (KTM)"
+    ]
+  },
+  "GENERIC": {
+    "country_name": "Other / Unknown",
+    "visa_required": true,
+    "visa_type": "Check Indian Embassy / e-Medical Visa eligibility",
+    "visa_duration_days": 60,
+    "visa_extendable": true,
+    "processing_days": "5-10 business days (varies by country)",
+    "mandatory_docs": [
+      "Valid passport (min 6 months validity)",
+      "Passport-size photographs (2)",
+      "Hospital appointment / treatment letter",
+      "Medical records and diagnosis reports",
+      "Travel health insurance",
+      "Proof of sufficient funds",
+      "Return flight ticket",
+      "Accommodation booking"
+    ],
+    "recommended_docs": [
+      "Home country physician referral letter",
+      "Prior investigation reports",
+      "Current medication list",
+      "Emergency contact information"
+    ],
+    "notes": "Contact the Indian Embassy or High Commission in your country to confirm visa type and requirements. Most nationalities are eligible for the e-Medical Visa at https://indianvisaonline.gov.in/",
+    "currency": "USD",
+    "direct_flights": null,
+    "flight_hubs": [
+      "Varies — check connections via Dubai, Doha, Singapore, or London"
+    ]
+  }
+}
