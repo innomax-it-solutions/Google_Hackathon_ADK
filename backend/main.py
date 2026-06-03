@@ -18,8 +18,8 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from pydantic import BaseModel
 
-from medbridge_agent.agent import root_agent
-from medbridge_agent.contract import IntakeRequest
+from .agent import root_agent
+from .contract import IntakeRequest
 
 APP_NAME = "medbridge"
 

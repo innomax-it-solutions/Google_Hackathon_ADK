@@ -13,19 +13,21 @@ LlmAgent (gemini-2.0-flash)  ← reasons + decides
   └── request_appointment     (ACTION) book/reserve on the patient's behalf
 ```
 
-Knowledge base: `medbridge_agent/data/*.json` (loaded once at startup, cached).
+Knowledge base: `backend/data/*.json` (loaded once at startup, cached).
+
+`backend/` is the ADK agent package, so all commands run from the **repo root**.
 
 ## Run locally
 
 ```bash
-pip install -r requirements.txt
-cp .env.example .env        # set GOOGLE_CLOUD_PROJECT, run: gcloud auth application-default login
+pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env   # set GOOGLE_CLOUD_PROJECT, then: gcloud auth application-default login
 
 # Option A — ADK dev UI (best for testing the agent's reasoning):
-adk web                     # run from the backend/ dir, open the printed URL
+adk web                     # from the repo root; pick "backend" in the dropdown
 
 # Option B — the FastAPI server the frontend talks to:
-uvicorn main:app --reload --port 8080
+uvicorn backend.main:app --reload --port 8080
 ```
 
 Test the API:
@@ -39,7 +41,7 @@ curl -N -X POST localhost:8080/run -H "Content-Type: application/json" \
 ```bash
 adk deploy cloud_run \
   --project=$GOOGLE_CLOUD_PROJECT --region=us-central1 \
-  --service_name=medbridge-backend --app_name=medbridge medbridge_agent
+  --service_name=medbridge-backend --app_name=medbridge backend
 ```
 Grant the Cloud Run service account the **Vertex AI User** role. No LLM API key needed.
 
