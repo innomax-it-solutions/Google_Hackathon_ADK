@@ -28,6 +28,10 @@ Thumbs.db
 *.BACKUP.*
 *.bak
 
+# --- ADK local session/artifact storage ---
+.adk/
+*.session.json
+
 # --- Not part of the codebase ---
 ai_agents_challenge_designed_guide.pdf
 MedBridge_Tech_Architecture.docx
