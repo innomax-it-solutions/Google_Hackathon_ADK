@@ -9,20 +9,36 @@ env/
 # --- Secrets / local config ---
 .env
 .env.local
+.env.*.local
 *.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+service_account*.json
+gcloud-service-key.json
 
-# --- Node / frontend (Team Bravo will add this) ---
+# --- Node / frontend ---
 node_modules/
 dist/
 build/
 .next/
 *.log
+.cache/
+.parcel-cache/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
 
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
+desktop.ini
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # --- Backups / temp ---
 *.BACKUP.*
