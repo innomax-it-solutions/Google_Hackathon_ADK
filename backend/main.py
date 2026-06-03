@@ -13,9 +13,12 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load backend/.env (GOOGLE_API_KEY, MEDBRIDGE_MODEL, ...) before the agent /
-# google.genai client initialise, so credentials are present at import time.
-load_dotenv(Path(__file__).parent / ".env")
+# Load backend/.env before any google.genai/ADK imports so credentials are
+# available at import time. resolve() turns a relative __file__ into an
+# absolute path, which fixes uvicorn --reload worker subprocess resolution.
+_env_file = Path(__file__).resolve().parent / ".env"
+load_dotenv(_env_file, override=True)
+
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,9 +51,15 @@ def _sse(event_type: str, payload: dict) -> str:
 
 async def _stream(user_id: str, session_id: str, text: str):
     """Run the agent and translate ADK events into the frontend SSE contract."""
-    await session_service.create_session(
-        app_name=APP_NAME, user_id=user_id, session_id=session_id
-    )
+    # create_session raises if the session already exists (e.g. multi-turn chat).
+    # Catch and ignore that error — the runner will find the existing session.
+    try:
+        await session_service.create_session(
+            app_name=APP_NAME, user_id=user_id, session_id=session_id
+        )
+    except Exception:
+        pass  # session already exists — reuse it
+
     message = types.Content(role="user", parts=[types.Part(text=text)])
 
     yield _sse("session", {"session_id": session_id})

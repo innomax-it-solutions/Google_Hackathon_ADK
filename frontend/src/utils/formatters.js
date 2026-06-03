@@ -30,8 +30,11 @@ export function inlineParse(text, keyPrefix = "") {
       parts.push(createElement("em", { key }, m[3]));
     else if (m[4])
       parts.push(createElement("code", { key, className: "bg-black/[.06] dark:bg-white/[.1] text-[0.85em] px-1.5 py-0.5 rounded font-mono" }, m[4]));
-    else if (m[5])
-      parts.push(createElement("a", { key, href: m[6], target: "_blank", rel: "noreferrer", className: "text-blue-600 underline underline-offset-2 hover:text-blue-700" }, m[5]));
+    else if (m[5]) {
+      // Only allow http/https — block javascript: data: and other risky schemes
+      const href = /^https?:\/\//i.test(m[6]) ? m[6] : "#";
+      parts.push(createElement("a", { key, href, target: "_blank", rel: "noopener noreferrer", className: "text-blue-600 underline underline-offset-2 hover:text-blue-700" }, m[5]));
+    }
     last = m.index + m[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
