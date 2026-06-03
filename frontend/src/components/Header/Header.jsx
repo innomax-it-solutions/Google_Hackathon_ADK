@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useState, useEffect }    from "react";
 import { useChatContext } from "../../context/ChatContext";
 import { useTheme }       from "../../context/ThemeContext";
 import { useToast }       from "../../context/ToastContext";
+import { healthCheck }    from "../../services/ai/provider";
 import { Button }         from "../ui/button";
 import { Badge }          from "../ui/badge";
 import { Tooltip }        from "../ui/tooltip";
@@ -14,10 +16,29 @@ import {
   DropdownMenuLabel,
 } from "../ui/dropdown-menu";
 
+/** Polls /healthz every 15 s and returns the current backend status. */
+function useBackendStatus() {
+  const [online, setOnline] = useState(null); // null = checking
+
+  useEffect(() => {
+    let cancelled = false;
+    async function check() {
+      const ok = await healthCheck();
+      if (!cancelled) setOnline(ok);
+    }
+    check();
+    const id = setInterval(check, 15_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  return online;
+}
+
 export default function Header() {
   const { clearConversation, messages } = useChatContext();
   const { isDark, toggle }              = useTheme();
   const { toast }                       = useToast();
+  const backendOnline                   = useBackendStatus();
 
   const hasMessages = messages.length > 0;
   const firstUser   = messages.find(m => m.role === "user");
@@ -57,6 +78,22 @@ export default function Header() {
             <Badge variant="accent" className="hidden sm:inline-flex text-[9.5px] tracking-wider uppercase">
               AI
             </Badge>
+            {/* Backend connection status */}
+            <Tooltip
+              content={
+                backendOnline === null  ? "Connecting to backend…"  :
+                backendOnline           ? "Backend connected"        :
+                                          "Backend offline — start uvicorn"
+              }
+              side="bottom"
+            >
+              <span className={[
+                "w-2 h-2 rounded-full flex-shrink-0 transition-colors duration-500",
+                backendOnline === null ? "bg-yellow-400 animate-pulse" :
+                backendOnline          ? "bg-emerald-400"              :
+                                         "bg-red-500 animate-pulse",
+              ].join(" ")} />
+            </Tooltip>
           </div>
         </div>
 

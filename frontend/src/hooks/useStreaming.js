@@ -1,24 +1,20 @@
 /**
  * hooks/useStreaming.js — Manages a single active SSE stream.
- * Completely decoupled from UI — calls message callbacks.
+ * Completely decoupled from UI — calls message state callbacks.
  */
 
 import { useRef, useCallback } from "react";
 import { sendChatMessage } from "../services/api";
+import { friendlyError }   from "../services/ai/errors";
 
 export function useStreaming({ sessionId, add, patch, patchFn }) {
-  const ctrlRef    = useRef(null);  // AbortController wrapper
-  const streamIdRef = useRef(null); // id of the currently-streaming message
+  const ctrlRef     = useRef(null);
+  const streamIdRef = useRef(null);
 
-  /**
-   * Send a message, create a streaming assistant bubble, and fill it with tokens.
-   * Returns the message id of the assistant bubble.
-   */
   const send = useCallback((text, onDone) => {
-    // Cancel any in-flight stream
+    // Cancel any in-flight stream before starting a new one
     ctrlRef.current?.abort();
 
-    // Create the empty streaming bubble
     const id = add({ role: "assistant", content: "", status: "streaming", tools: [] });
     streamIdRef.current = id;
 
@@ -42,11 +38,12 @@ export function useStreaming({ sessionId, add, patch, patchFn }) {
         onDone?.();
       },
       onError: (err) => {
-        console.error("[MedBridge stream]", err);
-        patch(id, {
-          status: "error",
-          content: "Something went wrong. Please try again.",
-        });
+        // err = { code, status?, message } — see services/ai/errors.js
+        const message = friendlyError(err?.code) ?? err?.message ?? "Something went wrong. Please try again.";
+        if (err?.code !== "CANCELLED") {
+          console.error("[MedBridge]", err);
+        }
+        patch(id, { status: "error", content: message });
         onDone?.();
       },
     });
@@ -54,7 +51,6 @@ export function useStreaming({ sessionId, add, patch, patchFn }) {
     return id;
   }, [sessionId, add, patch, patchFn]);
 
-  /** Cancel the current stream and mark the bubble as complete. */
   const stop = useCallback(() => {
     ctrlRef.current?.abort();
     if (streamIdRef.current) {
