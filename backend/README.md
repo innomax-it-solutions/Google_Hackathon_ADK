@@ -6,7 +6,7 @@ Gemini decides which tools to call and in what order — this is a reasoning age
 ## Architecture
 
 ```
-LlmAgent (gemini-2.0-flash)  ← reasons + decides
+LlmAgent (gemini-2.5-flash)  ← reasons + decides
   ├── find_hospitals          (read)   match condition+budget → top 3 MoU hospitals
   ├── estimate_cost           (read)   itemised USD + INR cost for hospital × procedure
   ├── get_document_checklist  (read)   visa + document rules by ISO country

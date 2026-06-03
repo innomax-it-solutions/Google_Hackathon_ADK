@@ -16,7 +16,7 @@ from .tools.cost_estimator import estimate_cost
 from .tools.document_checklist import get_document_checklist
 from .tools.hospital_match import find_hospitals
 
-MODEL = os.environ.get("MEDBRIDGE_MODEL", "gemini-2.0-flash")
+MODEL = os.environ.get("MEDBRIDGE_MODEL", "gemini-2.5-flash")
 
 INSTRUCTION = """\
 You are MedBridge, an autonomous medical-tourism coordinator for Healtour Solutions.
