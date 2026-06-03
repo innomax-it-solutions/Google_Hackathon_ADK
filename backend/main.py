@@ -9,6 +9,13 @@ from __future__ import annotations
 
 import json
 import uuid
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load backend/.env (GOOGLE_API_KEY, MEDBRIDGE_MODEL, ...) before the agent /
+# google.genai client initialise, so credentials are present at import time.
+load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
