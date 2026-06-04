@@ -62,7 +62,45 @@ export const CLARIFY_FIELDS = {
     custom: { placeholder: "Another language…", type: "text" },
     optional: true,
   },
+  // --- Travel / flights ---
+  departure_city: {
+    question: "Which city will you fly from?",
+    options: [
+      { label: "Dubai (DXB)", value: "DXB" },
+      { label: "Abu Dhabi (AUH)", value: "AUH" },
+      { label: "London (LHR)", value: "LHR" },
+      { label: "Lagos (LOS)", value: "LOS" },
+      { label: "Dhaka (DAC)", value: "DAC" },
+      { label: "Riyadh (RUH)", value: "RUH" },
+    ],
+    custom: { placeholder: "City or airport code…", type: "text" },
+    optional: true,
+  },
+  travel_date: {
+    question: "When do you plan to travel?",
+    options: [
+      { label: "As soon as possible", value: "as soon as possible" },
+      { label: "In 2–4 weeks", value: "in 2 to 4 weeks" },
+      { label: "In 1–2 months", value: "in 1 to 2 months" },
+    ],
+    custom: { placeholder: "A date, e.g. 2026-08-15…", type: "text" },
+    optional: true,
+  },
+  travellers: {
+    question: "How many people are travelling?",
+    options: [
+      { label: "Just me", value: "1" },
+      { label: "2 (with a companion)", value: "2" },
+      { label: "3", value: "3" },
+      { label: "4 or more", value: "4" },
+    ],
+    custom: { placeholder: "Number of travellers…", type: "number" },
+    optional: true,
+  },
 };
 
 // Canonical order the questions are asked in.
-export const CLARIFY_ORDER = ["condition", "origin_country", "budget_usd", "timeline_weeks", "interpreter_language"];
+export const CLARIFY_ORDER = [
+  "condition", "origin_country", "budget_usd", "timeline_weeks", "interpreter_language",
+  "departure_city", "travel_date", "travellers",
+];

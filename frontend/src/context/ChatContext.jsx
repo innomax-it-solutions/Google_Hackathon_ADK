@@ -24,7 +24,11 @@ const Ctx = createContext(null);
 const COUNTRY_NAME = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
 
 // Always collect these via the popup (the agent tends to forget the optional ones).
-const ALWAYS_ASK = ["budget_usd", "timeline_weeks", "interpreter_language"];
+// Includes the travel/flight inputs so the whole journey is captured in one popup.
+const ALWAYS_ASK = [
+  "budget_usd", "timeline_weeks", "interpreter_language",
+  "departure_city", "travel_date", "travellers",
+];
 
 // Build the full, ordered question set: whatever the agent flagged as missing PLUS
 // the optional fields we always want, deduped and in canonical order.
@@ -41,6 +45,9 @@ function composeClarifyMessage(answers) {
   if (answers.budget_usd)     parts.push(`My budget is about $${answers.budget_usd}.`);
   if (answers.timeline_weeks) parts.push(`I'd like treatment within ${answers.timeline_weeks} weeks.`);
   if (answers.interpreter_language) parts.push(`I need an interpreter in ${languageName(answers.interpreter_language)}.`);
+  if (answers.departure_city) parts.push(`I'll be flying from ${answers.departure_city}.`);
+  if (answers.travel_date)    parts.push(`I plan to travel ${answers.travel_date}.`);
+  if (answers.travellers)     parts.push(`Travelling party: ${answers.travellers} ${answers.travellers === "1" ? "person" : "people"}.`);
   return parts.join(" ") || "Here are my details.";
 }
 
