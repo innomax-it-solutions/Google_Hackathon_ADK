@@ -81,6 +81,20 @@ _SYNONYMS: dict[str, str] = {
     "brain tumor": "craniotomy",
     "brain tumour": "craniotomy",
     "breast cancer": "mastectomy-simple",
+    # Generic umbrella terms — listed LAST so specific phrases above always win
+    # (e.g. "breast cancer" -> mastectomy beats the generic "cancer"). These catch
+    # vague conditions (often from translation, e.g. Arabic "جراحة قلب" -> "heart surgery")
+    # and map them to the most common procedure in that area.
+    "heart surgery": "cabg",
+    "cardiac surgery": "cabg",
+    "heart operation": "cabg",
+    "bypass": "cabg",
+    "cancer treatment": "chemotherapy-basic",
+    "cancer": "chemotherapy-basic",
+    "eye surgery": "cataract-surgery-monofocal",
+    "eye operation": "cataract-surgery-monofocal",
+    "spine surgery": "spine-fixation",
+    "back surgery": "micro-lumbar-discectomy",
 }
 
 _STOP = {"surgery", "operation", "procedure", "treatment", "the", "a", "for", "of", "my"}
@@ -93,8 +107,11 @@ def _resolve(condition: str) -> str | None:
 
     if c in catalog:                      # already a valid slug
         return c
+    # Normalise hyphens/underscores to spaces for phrase matching, so a slug-like
+    # input ("heart-surgery") still matches a synonym phrase ("heart surgery").
+    c_norm = c.replace("-", " ").replace("_", " ")
     for phrase, slug in _SYNONYMS.items():  # explicit synonyms
-        if phrase in c:
+        if phrase in c_norm:
             return slug if slug in catalog else None
 
     # Token-overlap fallback: score each slug by shared words; prefer the
@@ -112,16 +129,17 @@ def _resolve(condition: str) -> str | None:
     return best
 
 
-def find_hospitals(condition: str, budget_usd: int, origin_country: str) -> dict:
+def find_hospitals(condition: str, origin_country: str, budget_usd: int = 0) -> dict:
     """Find the best-matching MoU hospitals in India for a patient's condition.
 
-    Call this FIRST. Use the returned hospital_id and matched_procedure when you
+    Call this FIRST, as soon as you know the condition and origin country — the
+    budget is OPTIONAL. Use the returned hospital_id and matched_procedure when you
     later call estimate_cost.
 
     Args:
         condition: The condition or procedure in plain language, e.g. "knee replacement", "heart bypass", "kidney transplant".
-        budget_usd: The patient's total budget in US dollars.
         origin_country: The patient's country as a 2-letter ISO code, e.g. "AE", "US", "GB".
+        budget_usd: The patient's total budget in US dollars. Optional — pass 0 (or omit) when the patient hasn't given one; results are then ranked by price without a budget filter.
 
     Returns:
         A dict with "status" ("ok" or "general_recommendation"), the resolved
@@ -156,7 +174,8 @@ def find_hospitals(condition: str, budget_usd: int, origin_country: str) -> dict
                 "international_desk": h.get("international_desk", False),
                 "est_usd_min": umin,
                 "est_usd_max": umax,
-                "within_budget": bool(umin is not None and umin <= budget_usd),
+                # None when no budget was given — the card/ranking treat it as "not filtered".
+                "within_budget": None if not budget_usd else bool(umin is not None and umin <= budget_usd),
             })
 
     if not candidates:

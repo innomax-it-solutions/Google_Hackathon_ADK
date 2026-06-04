@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ..contract import cost_for, hospital_by_id
+from .hospital_match import _resolve
 
 
 def estimate_cost(hospital_id: str, procedure: str, origin_country: str) -> dict:
@@ -25,6 +26,11 @@ def estimate_cost(hospital_id: str, procedure: str, origin_country: str) -> dict
     hospital = hospital_by_id(hospital_id)
     if not hospital:
         return {"status": "unavailable", "message": f"No record for hospital '{hospital_id}'."}
+
+    # The agent sometimes passes a loose term ("heart surgery") or a guessed slug
+    # ("heart-surgery") instead of the exact matched_procedure. Resolve it the same
+    # way find_hospitals does so a valid procedure still prices correctly.
+    procedure = _resolve(procedure) or procedure
 
     cost = cost_for(hospital_id, procedure)
     if not cost:
