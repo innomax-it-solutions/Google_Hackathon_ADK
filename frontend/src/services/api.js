@@ -5,8 +5,13 @@
  * Swapping providers only requires changing services/ai/provider.js.
  */
 
-import { streamChat } from "./ai/provider";
+import { streamChat, streamIntake } from "./ai/provider";
 
 export function sendChatMessage(sessionId, message, language, handlers) {
   return streamChat({ sessionId, message, language }, handlers);
+}
+
+/** Submit the structured intake form (Hospital Finder) → streamed Journey Plan. */
+export function submitIntakeForm(intake, handlers) {
+  return streamIntake(intake, handlers);
 }
