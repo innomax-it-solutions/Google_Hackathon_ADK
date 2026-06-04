@@ -219,7 +219,7 @@ export default function Composer() {
                     </Button>
                   </Tooltip>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-[380px] overflow-y-auto w-[260px]">
+                <DropdownMenuContent align="start" side="top" className="max-h-[380px] overflow-y-auto w-[260px]">
                   {PROMPT_LIBRARY.map(group => (
                     <div key={group.group}>
                       <DropdownMenuLabel>{group.group}</DropdownMenuLabel>

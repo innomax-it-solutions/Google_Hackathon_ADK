@@ -16,13 +16,16 @@ const POSITIONS = {
  *   <Button ...>...</Button>
  * </Tooltip>
  */
-export function Tooltip({ children, content, side = "top", className }) {
+export function Tooltip({ children, content, side = "top", className, ...rest }) {
   const [visible, setVisible] = useState(false);
 
   if (!content) return children;
 
+  // Forward any injected props (e.g. onClick / aria-* added by DropdownMenuTrigger
+  // asChild) onto the wrapper so the trigger actually toggles the menu.
   return (
     <div
+      {...rest}
       className="relative inline-flex"
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}

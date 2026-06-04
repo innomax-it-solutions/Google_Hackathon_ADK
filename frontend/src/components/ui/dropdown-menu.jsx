@@ -50,20 +50,23 @@ export function DropdownMenuTrigger({ children, asChild }) {
 }
 
 /* ── Content panel ── */
-export function DropdownMenuContent({ children, align = "end", className, sideOffset = 8 }) {
+export function DropdownMenuContent({ children, align = "end", side = "bottom", className, sideOffset = 8 }) {
   const { open } = useContext(Ctx);
+  const isTop = side === "top"; // open upward (for triggers anchored at the bottom of the screen)
+  const offY = isTop ? 6 : -6;
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: -6 }}
+          initial={{ opacity: 0, scale: 0.95, y: offY }}
           animate={{ opacity: 1, scale: 1,    y: 0  }}
-          exit={{ opacity: 0, scale: 0.95,    y: -6 }}
+          exit={{ opacity: 0, scale: 0.95,    y: offY }}
           transition={{ duration: 0.12, ease: "easeOut" }}
-          style={{ marginTop: sideOffset }}
+          style={isTop ? { marginBottom: sideOffset } : { marginTop: sideOffset }}
           className={cn(
-            "absolute z-50 top-full min-w-[210px]",
+            "absolute z-50 min-w-[210px]",
+            isTop ? "bottom-full" : "top-full",
             "bg-[var(--color-surface)] border border-[var(--color-border)]",
             "rounded-2xl shadow-dropdown overflow-hidden py-1.5",
             align === "end" ? "right-0" : "left-0",

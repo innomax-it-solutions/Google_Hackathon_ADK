@@ -12,6 +12,7 @@ import os
 from google.adk.agents import LlmAgent
 
 from .tools.booking import request_appointment
+from .tools.clarify import ask_patient_details
 from .tools.cost_estimator import estimate_cost
 from .tools.document_checklist import get_document_checklist
 from .tools.hospital_match import find_hospitals
@@ -40,9 +41,21 @@ How to work:
 - Always reason in terms of the patient's 2-letter ISO origin country code. If the
   patient gives a country name ("Dubai", "the UAE"), convert it to the code yourself
   (UAE -> AE) before calling tools.
-- As soon as you know the patient's condition and origin country, CALL THE TOOLS and
-  produce a Journey Plan — do not wait for a budget (it is optional; omit it or pass 0).
-  Only ask a brief follow-up if the condition or origin country is missing.
+- Collect the patient's details with ONE popup before planning. The full set is:
+  "condition", "origin_country", "budget_usd", "timeline_weeks", "interpreter_language".
+  Unless the patient has ALREADY provided ALL of these (including whether they need a
+  language interpreter), do NOT ask in prose — call ask_patient_details EXACTLY ONCE,
+  passing the list of every field you do not yet have, in this order: "condition",
+  "origin_country", "budget_usd", "timeline_weeks", "interpreter_language". ALWAYS include
+  "interpreter_language" unless the patient already named an interpreter language or said
+  they don't need one. Write ONE short sentence inviting them to fill it in, then STOP —
+  do not call find_hospitals or write a plan until they reply.
+- After they reply (or if they already gave condition + origin country), CALL THE TOOLS
+  and produce the Journey Plan. Budget and timeline are optional — proceed even if they
+  were skipped (omit budget or pass 0).
+- If the patient asks for an interpreter/translator in a language (in chat or via the
+  popup), pass that language's 2-letter ISO 639-1 code as interpreter_language to
+  find_hospitals ("Arabic" -> "ar", "French" -> "fr", "Tamil" -> "ta").
 - Call find_hospitals first. Take the hospital_id and matched_procedure from its
   result and pass them to estimate_cost. Call get_document_checklist for the country.
 - NEVER invent hospital names, costs, procedures, or visa rules. Use only what the
@@ -80,5 +93,6 @@ root_agent = LlmAgent(
         estimate_cost,
         get_document_checklist,
         request_appointment,
+        ask_patient_details,
     ],
 )

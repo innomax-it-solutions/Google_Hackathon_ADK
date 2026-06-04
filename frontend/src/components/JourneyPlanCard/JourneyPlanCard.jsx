@@ -32,6 +32,7 @@
  */
 
 import { COUNTRIES } from "../../constants/countries";
+import { MEDBRIDGE_TRANSLATOR_LANGUAGES, languageName } from "../../constants/languages";
 
 const COUNTRY_NAME = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
 
@@ -55,7 +56,7 @@ export default function JourneyPlanCard({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Panel icon={<IconHospital />} title="Recommended hospitals" data={hospital} isLoading={isLoading}
-            render={() => <HospitalsBody hospital={hospital} cost={cost} />} />
+            render={() => <HospitalsBody hospital={hospital} cost={cost} supportLang={hospital?.requested_interpreter_language || intake?.support_language} />} />
 
           <Panel icon={<IconCost />} title="Estimated cost" data={cost} isLoading={isLoading}
             render={() => <CostBody cost={cost} procedureLabel={procedureLabel} />} />
@@ -168,7 +169,7 @@ function PanelSkeleton() {
 
 // --- Recommended hospitals -------------------------------------------------
 
-function HospitalsBody({ hospital, cost }) {
+function HospitalsBody({ hospital, cost, supportLang }) {
   const list = (Array.isArray(hospital?.hospitals) ? hospital.hospitals : []).slice(0, 3);
   const isGeneral = hospital?.status === "general_recommendation";
 
@@ -203,6 +204,7 @@ function HospitalsBody({ hospital, cost }) {
               <p className="text-xs text-slate-500">
                 {[h?.city, h?.tier ? `Tier ${h.tier}` : null].filter(Boolean).join(" · ")}
               </p>
+              {supportLang && <InterpreterLine has={hasTranslator(h, supportLang)} lang={supportLang} />}
             </div>
             <div className="text-right flex-shrink-0">
               {pct != null ? (
@@ -218,6 +220,18 @@ function HospitalsBody({ hospital, cost }) {
         );
       })}
 
+      {supportLang && (
+        <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 text-xs">
+          {MEDBRIDGE_TRANSLATOR_LANGUAGES.includes(supportLang)
+            ? <IconCheck className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+            : <IconX className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+          <span className={MEDBRIDGE_TRANSLATOR_LANGUAGES.includes(supportLang) ? "text-slate-600" : "text-slate-400"}>
+            MedBridge interpreter ({languageName(supportLang)}) —{" "}
+            {MEDBRIDGE_TRANSLATOR_LANGUAGES.includes(supportLang) ? "available" : "not available"}
+          </span>
+        </div>
+      )}
+
       {isGeneral && (
         <Note tone="amber">
           Closest accredited options — we couldn't match your exact procedure. Your coordinator
@@ -226,6 +240,21 @@ function HospitalsBody({ hospital, cost }) {
       )}
     </div>
   );
+}
+
+// Per-hospital interpreter availability line.
+function InterpreterLine({ has, lang }) {
+  const name = languageName(lang);
+  return (
+    <p className={`text-[11px] mt-0.5 flex items-center gap-1 ${has ? "text-green-600" : "text-slate-400"}`}>
+      {has ? <IconCheck className="w-3 h-3 flex-shrink-0" /> : <IconX className="w-3 h-3 flex-shrink-0" />}
+      {has ? `${name} interpreter` : `No ${name} interpreter`}
+    </p>
+  );
+}
+
+function hasTranslator(h, code) {
+  return Array.isArray(h?.translator_languages) && h.translator_languages.includes(code);
 }
 
 // --- Estimated cost --------------------------------------------------------
@@ -527,6 +556,13 @@ function IconCheck({ className = "w-4 h-4" }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+function IconX({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   );
 }

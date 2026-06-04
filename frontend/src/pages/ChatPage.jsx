@@ -1,11 +1,12 @@
 import { useChatContext } from "../context/ChatContext";
-import Header           from "../components/Header/Header";
-import ChatWindow       from "../components/ChatWindow/ChatWindow";
-import SuggestedPrompts from "../components/SuggestedPrompts/SuggestedPrompts";
-import Composer         from "../components/Composer/Composer";
+import Header             from "../components/Header/Header";
+import ChatWindow         from "../components/ChatWindow/ChatWindow";
+import SuggestedPrompts   from "../components/SuggestedPrompts/SuggestedPrompts";
+import Composer           from "../components/Composer/Composer";
+import ClarificationPrompt from "../components/ClarificationPrompt/ClarificationPrompt";
 
 export default function ChatPage() {
-  const { messages } = useChatContext();
+  const { messages, pendingClarification, submitClarification, dismissClarification } = useChatContext();
   const isEmpty = messages.length === 0;
 
   return (
@@ -13,6 +14,14 @@ export default function ChatPage() {
       <Header />
 
       {isEmpty ? <SuggestedPrompts /> : <ChatWindow messages={messages} />}
+
+      {pendingClarification && (
+        <ClarificationPrompt
+          fields={pendingClarification.fields}
+          onComplete={submitClarification}
+          onDismiss={dismissClarification}
+        />
+      )}
 
       <Composer />
     </div>

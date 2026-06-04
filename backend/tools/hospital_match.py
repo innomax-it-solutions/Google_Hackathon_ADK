@@ -129,7 +129,7 @@ def _resolve(condition: str) -> str | None:
     return best
 
 
-def find_hospitals(condition: str, origin_country: str, budget_usd: int = 0) -> dict:
+def find_hospitals(condition: str, origin_country: str, budget_usd: int = 0, interpreter_language: str = "") -> dict:
     """Find the best-matching MoU hospitals in India for a patient's condition.
 
     Call this FIRST, as soon as you know the condition and origin country — the
@@ -140,6 +140,7 @@ def find_hospitals(condition: str, origin_country: str, budget_usd: int = 0) -> 
         condition: The condition or procedure in plain language, e.g. "knee replacement", "heart bypass", "kidney transplant".
         origin_country: The patient's country as a 2-letter ISO code, e.g. "AE", "US", "GB".
         budget_usd: The patient's total budget in US dollars. Optional — pass 0 (or omit) when the patient hasn't given one; results are then ranked by price without a budget filter.
+        interpreter_language: OPTIONAL. If the patient said they need an interpreter/translator in a language, pass that language's 2-letter ISO 639-1 code here, e.g. "ar" for Arabic, "fr" for French, "ta" for Tamil. Leave empty ("") if they didn't ask for one. It does not affect ranking; it is echoed back so the UI can show per-hospital interpreter availability.
 
     Returns:
         A dict with "status" ("ok" or "general_recommendation"), the resolved
@@ -172,6 +173,7 @@ def find_hospitals(condition: str, origin_country: str, budget_usd: int = 0) -> 
                 "state": h.get("state"),
                 "tier": h.get("tier"),
                 "international_desk": h.get("international_desk", False),
+                "translator_languages": h.get("translator_languages", []),
                 "est_usd_min": umin,
                 "est_usd_max": umax,
                 # None when no budget was given — the card/ranking treat it as "not filtered".
@@ -190,6 +192,7 @@ def find_hospitals(condition: str, origin_country: str, budget_usd: int = 0) -> 
                 "state": h.get("state"),
                 "tier": h.get("tier"),
                 "international_desk": h.get("international_desk", False),
+                "translator_languages": h.get("translator_languages", []),
                 "est_usd_min": None,
                 "est_usd_max": None,
                 "within_budget": None,
@@ -209,5 +212,6 @@ def find_hospitals(condition: str, origin_country: str, budget_usd: int = 0) -> 
         "condition": condition,
         "matched_procedure": slug,
         "specialty": specialty,
+        "requested_interpreter_language": (interpreter_language or "").strip().lower(),
         "hospitals": candidates,
     }

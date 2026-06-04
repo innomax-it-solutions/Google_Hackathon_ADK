@@ -23,6 +23,16 @@
       "Rajajinagar",
       "Cunningham Rd",
       "Naagarabhaavi"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr",
+      "ru",
+      "es",
+      "bn",
+      "zh"
     ]
   },
   {
@@ -50,6 +60,17 @@
       "Secunderabad",
       "Financial District",
       "Kanchan Bagh"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr",
+      "ru",
+      "es",
+      "bn",
+      "zh",
+      "sw"
     ]
   },
   {
@@ -78,6 +99,16 @@
       "Perungudi OMR",
       "Tondiarpet",
       "Proton Cancer Centre"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr",
+      "ru",
+      "ta",
+      "ml",
+      "bn"
     ]
   },
   {
@@ -104,6 +135,15 @@
       "Electronic City",
       "HSR Layout",
       "Seshadripuram"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr",
+      "es",
+      "ru",
+      "bn"
     ]
   },
   {
@@ -128,6 +168,16 @@
     "branches": [
       "Sarita Vihar",
       "Defence Colony"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr",
+      "ru",
+      "es",
+      "fa",
+      "bn"
     ]
   },
   {
@@ -150,6 +200,16 @@
     "international_desk": true,
     "branches": [
       "Navi Mumbai"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr",
+      "ru",
+      "es",
+      "bn",
+      "zh"
     ]
   },
   {
@@ -173,7 +233,11 @@
     "cost_index": 0.45,
     "international_desk": false,
     "rohini_id": "8900080353886",
-    "pan": "AABCN8436H"
+    "pan": "AABCN8436H",
+    "translator_languages": [
+      "en",
+      "hi"
+    ]
   },
   {
     "id": "kims-hyd-001",
@@ -196,6 +260,14 @@
     "international_desk": true,
     "branches": [
       "Gachibowli"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr",
+      "bn",
+      "sw"
     ]
   },
   {
@@ -218,6 +290,12 @@
     "international_desk": true,
     "branches": [
       "Visakhapatnam"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "bn"
     ]
   },
   {
@@ -246,6 +324,13 @@
       "Secunderabad",
       "Karimnagar",
       "Warangal"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "ru",
+      "bn"
     ]
   },
   {
@@ -268,6 +353,11 @@
     "international_desk": true,
     "branches": [
       "Banjara Hills"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar"
     ]
   },
   {
@@ -291,6 +381,14 @@
     "international_desk": true,
     "branches": [
       "Vadapalani"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "ta",
+      "ml",
+      "fr"
     ]
   },
   {
@@ -313,6 +411,13 @@
     "international_desk": false,
     "branches": [
       "Aminjikarai"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ta",
+      "ml",
+      "ar"
     ]
   },
   {
@@ -339,6 +444,12 @@
       "Kilpauk",
       "Anna Nagar",
       "Poonamallee"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ta",
+      "ml"
     ]
   },
   {
@@ -363,6 +474,11 @@
       "Ashok Nagar",
       "Kalyan Nagar",
       "Sadashivanagar"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar"
     ]
   },
   {
@@ -385,6 +501,12 @@
     "international_desk": false,
     "branches": [
       "Singanallur"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ta",
+      "ml"
     ]
   },
   {
@@ -410,6 +532,13 @@
       "Coimbatore",
       "Tirupur",
       "Erode"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ta",
+      "ml",
+      "ar"
     ]
   },
   {
@@ -432,6 +561,12 @@
     "international_desk": false,
     "branches": [
       "Coimbatore"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ta",
+      "ml"
     ]
   },
   {
@@ -455,6 +590,13 @@
     "international_desk": true,
     "branches": [
       "Gurugram"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr",
+      "ru"
     ]
   },
   {
@@ -477,6 +619,11 @@
     "international_desk": false,
     "branches": [
       "South Delhi"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar"
     ]
   },
   {
@@ -502,6 +649,10 @@
       "Kachiguda",
       "Banjara Hills",
       "Uppal"
+    ],
+    "translator_languages": [
+      "en",
+      "hi"
     ]
   },
   {
@@ -524,6 +675,12 @@
     "international_desk": false,
     "branches": [
       "Panvel"
+    ],
+    "translator_languages": [
+      "en",
+      "hi",
+      "ar",
+      "fr"
     ]
   }
 ]

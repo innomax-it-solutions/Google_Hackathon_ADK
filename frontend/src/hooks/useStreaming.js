@@ -7,15 +7,18 @@ import { useRef, useCallback } from "react";
 import { sendChatMessage } from "../services/api";
 import { friendlyError }   from "../services/ai/errors";
 
-export function useStreaming({ sessionId, add, patch, patchFn }) {
+export function useStreaming({ sessionId, add, patch, patchFn, onClarify }) {
   const ctrlRef     = useRef(null);
   const streamIdRef = useRef(null);
 
-  const send = useCallback((text, language, onDone) => {
+  const send = useCallback((text, language, onDone, supportLanguage = "") => {
     // Cancel any in-flight stream before starting a new one
     ctrlRef.current?.abort();
 
-    const id = add({ role: "assistant", content: "", status: "streaming", tools: [], toolData: {}, intake: null });
+    // Seed the chosen interpreter language so the card shows availability even if the
+    // agent doesn't echo it back via find_hospitals.
+    const initialIntake = supportLanguage ? { support_language: supportLanguage } : null;
+    const id = add({ role: "assistant", content: "", status: "streaming", tools: [], toolData: {}, intake: initialIntake });
     streamIdRef.current = id;
 
     ctrlRef.current = sendChatMessage(sessionId, text, language, {
@@ -23,12 +26,19 @@ export function useStreaming({ sessionId, add, patch, patchFn }) {
         patchFn(id, m => ({ ...m, content: m.content + token }));
       },
       onToolCall: (name, args) => {
+        // The agent asks for missing details via a popup instead of prose — surface
+        // it to ChatContext and don't render it as a normal tool badge.
+        if (name === "ask_patient_details") {
+          onClarify?.(Array.isArray(args?.missing_fields) ? args.missing_fields : []);
+          return;
+        }
         patchFn(id, m => {
           const next = { ...m, tools: [...m.tools, { name, status: "running" }] };
           // The find_hospitals call carries the patient profile the agent parsed
           // from free text — reuse it as the Journey Plan card's header.
           if (name === "find_hospitals" && args) {
             next.intake = {
+              ...(m.intake || {}),
               condition:      args.condition,
               origin_country: args.origin_country,
               budget_usd:     args.budget_usd,
@@ -65,7 +75,7 @@ export function useStreaming({ sessionId, add, patch, patchFn }) {
     });
 
     return id;
-  }, [sessionId, add, patch, patchFn]);
+  }, [sessionId, add, patch, patchFn, onClarify]);
 
   const stop = useCallback(() => {
     ctrlRef.current?.abort();
