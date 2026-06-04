@@ -42,10 +42,12 @@ export default function JourneyPlanCard({
   cost,
   docs,
   booking,
+  flights,
   summary,
   isLoading,
 }) {
   const procedureLabel = labelize(hospital?.matched_procedure || cost?.procedure);
+  const selectedFlight = pickFlight(flights, cost);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
@@ -61,6 +63,9 @@ export default function JourneyPlanCard({
           <Panel icon={<IconCost />} title="Estimated cost" data={cost} isLoading={isLoading}
             render={() => <CostBody cost={cost} procedureLabel={procedureLabel} />} />
 
+          <Panel icon={<IconPlane />} title="Flights" data={selectedFlight} isLoading={isLoading}
+            render={() => <FlightsBody flight={selectedFlight} cost={cost} />} />
+
           <Panel icon={<IconChecklist />} title="Travel checklist" data={docs} isLoading={isLoading}
             render={() => <ChecklistBody docs={docs} />} />
 
@@ -68,10 +73,25 @@ export default function JourneyPlanCard({
             render={() => <TimelineBody cost={cost} procedureLabel={procedureLabel} />} />
         </div>
 
+        <FinalEstimate cost={cost} intake={intake} isLoading={isLoading} />
+
         <AISummary summary={summary} isLoading={isLoading} />
       </div>
     </div>
   );
+}
+
+// Pick the flight to feature: the one estimate_cost costed in (by result_index),
+// else the cheapest (the backend returns results sorted cheapest-first).
+function pickFlight(flights, cost) {
+  const list = Array.isArray(flights?.results) ? flights.results : [];
+  if (!list.length) return null;
+  const id = cost?.selected_flight?.result_index;
+  if (id) {
+    const match = list.find((f) => f?.result_index === id);
+    if (match) return match;
+  }
+  return list[0];
 }
 
 // --- Patient request header ------------------------------------------------
@@ -467,6 +487,222 @@ function BookingBanner({ booking }) {
   );
 }
 
+// --- Flights ---------------------------------------------------------------
+
+function FlightsBody({ flight, cost }) {
+  if (!flight) return <p className="text-sm text-slate-500">Searching flights…</p>;
+
+  // New shape exposes each direction (outbound + return) with per-leg detail.
+  // Fall back to treating the flat shape as a single direction (one-way / old data).
+  const directions = Array.isArray(flight.directions) && flight.directions.length
+    ? flight.directions
+    : [flight];
+  const roundTrip = directions.length > 1;
+
+  const fareItem = (cost?.line_items || []).find((li) => li?.label === "Flights");
+  const fareUsd = fmtUsd(fareItem?.usd);
+  const fareNative = Number.isFinite(flight.published_fare)
+    ? `${flight.published_fare.toLocaleString("en-IN")} ${flight.currency || ""}`.trim()
+    : null;
+
+  return (
+    <div className="space-y-2.5">
+      {directions.map((dir, i) => (
+        <FlightDirection key={i} dir={dir} isReturn={roundTrip && i > 0} />
+      ))}
+
+      {(fareUsd || fareNative) && (
+        <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between">
+          <span className="text-[11px] uppercase tracking-wide text-slate-400">
+            {roundTrip ? "Round-trip airfare" : "Airfare"}
+          </span>
+          <span className="text-sm font-bold text-slate-800 tabular-nums">
+            {fareUsd || fareNative}
+            {fareUsd && fareNative && (
+              <span className="text-[11px] font-normal text-slate-400 ml-1">({fareNative})</span>
+            )}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One direction (Outbound or Return) with each connecting leg + layovers.
+function FlightDirection({ dir, isReturn }) {
+  const legs = Array.isArray(dir?.legs) && dir.legs.length ? dir.legs : null;
+  const stops = Number.isFinite(dir?.stops)
+    ? (dir.stops === 0 ? "non-stop" : `${dir.stops} stop${dir.stops > 1 ? "s" : ""}`)
+    : null;
+  const meta = [stops, fmtDuration(dir?.duration_minutes)].filter(Boolean).join(" · ");
+  const day = fmtDay(dir?.departure);
+
+  return (
+    <div className="rounded-lg bg-slate-50 border border-slate-100 p-2.5">
+      <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mb-1.5">
+        <IconPlane className={`w-3.5 h-3.5 ${isReturn ? "text-slate-400" : "text-blue-500"}`} />
+        <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+          {dir?.label || (isReturn ? "Return" : "Outbound")}
+        </span>
+        {day && <span className="text-[11px] text-slate-400">· {day}</span>}
+        <span className="text-xs font-bold text-slate-700 ml-auto">
+          {dir?.from || "—"} → {dir?.to || "—"}
+        </span>
+      </div>
+      {meta && <div className="text-[10px] text-slate-400 mb-2">{meta}</div>}
+
+      {legs ? (
+        <div className="space-y-1.5">
+          {legs.map((leg, j) => (
+            <div key={j}>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-700">{leg.from} → {leg.to}</span>
+                <span className="text-slate-400">{leg.flight_number || ""}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>{fmtDateTime(leg.departure)} → {fmtDateTime(leg.arrival)}</span>
+                {leg.airline && <span className="truncate ml-2 text-slate-400">{leg.airline}</span>}
+              </div>
+              {j < legs.length - 1 && (
+                <p className="text-[10px] text-amber-600 my-1">
+                  ↳ layover{fmtLayover(leg.arrival, legs[j + 1].departure)
+                    ? ` ${fmtLayover(leg.arrival, legs[j + 1].departure)}`
+                    : ""} in {leg.to}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center justify-between text-[11px] text-slate-500">
+          <span>Dep {fmtDateTime(dir?.departure)}</span>
+          <span>Arr {fmtDateTime(dir?.arrival)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Final estimate (treatment + flights vs budget) ------------------------
+
+function FinalEstimate({ cost, intake, isLoading }) {
+  // Only meaningful once a priced estimate exists; the grid panels show the
+  // loading skeletons in the meantime, so just stay hidden until then.
+  if (!cost || cost.status === "unavailable") return null;
+
+  const totalMin = cost.total_usd_min;
+  const totalMax = cost.total_usd_max;
+  if (!Number.isFinite(totalMin) && !Number.isFinite(totalMax)) return null;
+
+  const includesFlights = !!cost.includes_flights;
+  const flightItem = (cost.line_items || []).find((li) => li?.label === "Flights");
+  const flightUsd = Number.isFinite(flightItem?.usd) ? flightItem.usd : null;
+
+  const totalUsd = range(totalMin, totalMax, fmtUsd);
+  const totalInr = range(cost.total_inr_min, cost.total_inr_max, fmtInr);
+
+  // Treatment portion = grand total minus the fixed flight add-on.
+  const treatMin = Number.isFinite(totalMin) && flightUsd != null ? totalMin - flightUsd : totalMin;
+  const treatMax = Number.isFinite(totalMax) && flightUsd != null ? totalMax - flightUsd : totalMax;
+  const treatUsd = range(treatMin, treatMax, fmtUsd);
+
+  const budget = Number.isFinite(intake?.budget_usd) && intake.budget_usd > 0 ? intake.budget_usd : null;
+  const within = budget != null && Number.isFinite(totalMax) && totalMax <= budget;
+  const overBy = budget != null && Number.isFinite(totalMax) && totalMax > budget ? totalMax - budget : 0;
+
+  return (
+    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl px-5 py-4 text-white shadow-md">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <IconWallet className="w-4 h-4" />
+          <h3 className="text-[11px] font-bold tracking-wider uppercase opacity-90">
+            Final estimate {includesFlights ? "· treatment + flights" : "· treatment"}
+          </h3>
+        </div>
+        {budget != null ? (
+          within ? (
+            <span className="text-[11px] font-semibold bg-emerald-400/25 border border-emerald-200/50 rounded-full px-2.5 py-1">
+              ✓ Within your ${budget.toLocaleString("en-US")} budget
+            </span>
+          ) : (
+            <span className="text-[11px] font-semibold bg-amber-400/25 border border-amber-200/50 rounded-full px-2.5 py-1">
+              ≈ ${Math.round(overBy).toLocaleString("en-US")} over your ${budget.toLocaleString("en-US")} budget
+            </span>
+          )
+        ) : (
+          <span className="text-[11px] font-semibold bg-white/15 border border-white/30 rounded-full px-2.5 py-1">
+            Best-value plan
+          </span>
+        )}
+      </div>
+
+      <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums leading-tight">{totalUsd}</p>
+      {totalInr && <p className="text-xs opacity-80 tabular-nums">{totalInr}</p>}
+
+      {includesFlights && (
+        <div className="mt-3 pt-3 border-t border-white/20 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <span className="opacity-90">Treatment <b>{treatUsd || "—"}</b></span>
+          <span className="opacity-60">+</span>
+          <span className="opacity-90">Flights <b>{fmtUsd(flightUsd) || "—"}</b></span>
+        </div>
+      )}
+
+      <p className="mt-2 text-[11px] opacity-70">
+        {includesFlights
+          ? "Treatment package + selected flight. Accommodation estimated separately."
+          : "Treatment package only — flights and accommodation estimated separately."}
+      </p>
+    </div>
+  );
+}
+
+const _MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// "2026-06-25T05:55:00" -> "25 Jun, 05:55"
+function fmtDateTime(s) {
+  if (!s || typeof s !== "string") return "—";
+  const m = s.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return s;
+  const [, , mo, d, hh, mm] = m;
+  return `${parseInt(d, 10)} ${_MONTHS[parseInt(mo, 10) - 1]}, ${hh}:${mm}`;
+}
+
+// "2026-06-25T05:55:00" -> "25 Jun"
+function fmtDay(s) {
+  if (!s || typeof s !== "string") return null;
+  const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const [, , mo, d] = m;
+  return `${parseInt(d, 10)} ${_MONTHS[parseInt(mo, 10) - 1]}`;
+}
+
+// minutes -> "9h 35m"
+function fmtDuration(min) {
+  if (!Number.isFinite(min) || min <= 0) return null;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${h ? h + "h " : ""}${m ? m + "m" : ""}`.trim() || null;
+}
+
+function _parseDt(s) {
+  const m = s?.match?.(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d, hh, mm] = m;
+  return new Date(+y, +mo - 1, +d, +hh, +mm);
+}
+
+// gap between a leg's arrival and the next leg's departure -> "2h 10m"
+function fmtLayover(arr, dep) {
+  const a = _parseDt(arr);
+  const d = _parseDt(dep);
+  if (!a || !d) return "";
+  const min = Math.round((d - a) / 60000);
+  if (min <= 0 || min > 24 * 60) return "";
+  const h = Math.floor(min / 60);
+  const mm = min % 60;
+  return `${h ? h + "h " : ""}${mm ? mm + "m" : ""}`.trim();
+}
+
 // --- Shared bits -----------------------------------------------------------
 
 function Note({ children, tone = "blue" }) {
@@ -570,6 +806,27 @@ function IconSparkle({ className = "w-4 h-4" }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 2l1.9 4.6L18.5 8.5 13.9 10.4 12 15l-1.9-4.6L5.5 8.5l4.6-1.9L12 2zM18 14l.9 2.1 2.1.9-2.1.9L18 20l-.9-2.1-2.1-.9 2.1-.9L18 14z" />
+    </svg>
+  );
+}
+function IconPlane({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19l1.5-4 4.5-1.5M3 10.5l18-6-6 18-3.5-7.5L3 10.5z" />
+    </svg>
+  );
+}
+function IconArrow({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+function IconWallet({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h15a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 0a2 2 0 012-2h11M16 13h2" />
     </svg>
   );
 }

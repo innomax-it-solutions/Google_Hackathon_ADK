@@ -51,8 +51,9 @@ def _sse(event_type: str, payload: dict) -> str:
 
 async def _stream(user_id: str, session_id: str, text: str):
     """Run the agent and translate ADK events into the frontend SSE contract."""
-    # create_session raises if the session already exists (e.g. multi-turn chat).
-    # Catch and ignore that error — the runner will find the existing session.
+    # create_session raises if the session already exists (every message after the
+    # first reuses the same session_id for multi-turn chat). Catch and ignore — the
+    # runner will find the existing session.
     try:
         await session_service.create_session(
             app_name=APP_NAME, user_id=user_id, session_id=session_id
