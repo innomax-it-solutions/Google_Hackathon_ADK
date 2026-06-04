@@ -9,10 +9,14 @@ import JourneyPlanCard   from "../JourneyPlanCard/JourneyPlanCard";
 import CardErrorBoundary from "../JourneyPlanCard/CardErrorBoundary";
 
 const TOOL_LABELS = {
-  find_hospitals:         "Searching hospitals",
-  estimate_cost:          "Estimating treatment costs",
-  get_document_checklist: "Checking visa & documents",
-  request_appointment:    "Booking appointment",
+  find_hospitals:          "Searching hospitals",
+  estimate_cost:           "Estimating treatment costs",
+  get_document_checklist:  "Checking visa & documents",
+  request_appointment:     "Booking appointment",
+  flight_search:           "Searching live flights",
+  flight_farequote:        "Confirming flight fare",
+  hotel_search:            "Finding hotels",
+  prepare_booking_summary: "Preparing booking summary",
 };
 
 const msgVariants = {
@@ -102,6 +106,7 @@ function AssistantMessage({ message, isLast }) {
                 cost={td.estimate_cost}
                 docs={td.get_document_checklist}
                 booking={td.request_appointment}
+                flights={td.flight_search}
                 summary={message.content}
                 isLoading={isStreaming}
               />

@@ -38,30 +38,93 @@ def _err(exc: tbo.TboError) -> dict:
     return {"status": kind, "message": exc.message}
 
 
-def _segment_summary(segments: list) -> dict:
-    """Flatten TBO's nested Segments[][] (one inner list per leg group) to a
-    human-friendly summary: first-leg departure, last-leg arrival, stop count."""
-    legs = [leg for group in segments for leg in (group if isinstance(group, list) else [group])]
+def _summarize_legs(legs: list) -> dict:
+    """Summarize ONE direction's legs into a route + per-leg detail.
+
+    Per the live response: DepTime/ArrTime are siblings of Airport, one level
+    ABOVE it (Origin.DepTime, Destination.ArrTime); the airport code is
+    Origin.Airport.AirportCode; Duration is per-leg, in minutes.
+    """
+    legs = [l for l in legs if isinstance(l, dict)]
     if not legs:
         return {}
-    # Per the live response: DepTime/ArrTime are siblings of Airport, one level
-    # ABOVE it (Origin.DepTime, Destination.ArrTime), while the airport code is
-    # Origin.Airport.AirportCode. Duration is per-leg, in minutes.
-    origin_node = legs[0].get("Origin", {})
-    dest_node = legs[-1].get("Destination", {})
-    airlines = sorted({leg.get("Airline", {}).get("AirlineName") for leg in legs if leg.get("Airline")})
+    airlines: list[str] = []
+    flight_numbers: list[str] = []
+    leg_details: list[dict] = []
+    for leg in legs:
+        air = leg.get("Airline", {}) or {}
+        name = air.get("AirlineName")
+        fn = f"{air.get('AirlineCode', '')}{air.get('FlightNumber', '')}".strip()
+        if name and name not in airlines:
+            airlines.append(name)
+        if fn:
+            flight_numbers.append(fn)
+        o = leg.get("Origin", {}) or {}
+        d = leg.get("Destination", {}) or {}
+        leg_details.append({
+            "from": o.get("Airport", {}).get("AirportCode"),
+            "to": d.get("Airport", {}).get("AirportCode"),
+            "flight_number": fn or None,
+            "airline": name,
+            "departure": o.get("DepTime"),
+            "arrival": d.get("ArrTime"),
+            "duration_minutes": leg.get("Duration") or None,
+        })
+    origin_node = legs[0].get("Origin", {}) or {}
+    dest_node = legs[-1].get("Destination", {}) or {}
     return {
-        "airline": ", ".join(a for a in airlines if a),
-        "flight_numbers": [
-            f"{leg.get('Airline', {}).get('AirlineCode', '')}{leg.get('Airline', {}).get('FlightNumber', '')}"
-            for leg in legs
-        ],
+        "airline": ", ".join(airlines),
+        "flight_numbers": flight_numbers,
         "from": origin_node.get("Airport", {}).get("AirportCode"),
         "to": dest_node.get("Airport", {}).get("AirportCode"),
         "departure": origin_node.get("DepTime"),
         "arrival": dest_node.get("ArrTime"),
         "stops": max(len(legs) - 1, 0),
-        "duration_minutes": sum(leg.get("Duration") or 0 for leg in legs) or None,
+        "duration_minutes": sum(l.get("Duration") or 0 for l in legs) or None,
+        "legs": leg_details,
+    }
+
+
+def _segment_summary(segments: list) -> dict:
+    """Summarize TBO's nested Segments[][] per DIRECTION.
+
+    Segments is one inner list per direction: [[outbound legs], [return legs]]
+    for a round trip, or [[legs]] for one-way. We keep each direction separate
+    (so outbound and return display independently) and also expose flat
+    outbound-level fields for backward compatibility.
+    """
+    if not segments:
+        return {}
+    groups = [g if isinstance(g, list) else [g] for g in segments]
+    labels = ["Outbound", "Return"]
+    directions: list[dict] = []
+    for i, group in enumerate(groups):
+        summ = _summarize_legs(group)
+        if summ:
+            summ["label"] = labels[i] if i < len(labels) else f"Leg {i + 1}"
+            directions.append(summ)
+    if not directions:
+        return {}
+
+    outbound = directions[0]
+    all_airlines: list[str] = []
+    for d in directions:
+        for a in (d.get("airline") or "").split(", "):
+            if a and a not in all_airlines:
+                all_airlines.append(a)
+    return {
+        # Flat fields == the OUTBOUND journey (what the card historically read).
+        "airline": ", ".join(all_airlines),
+        "flight_numbers": outbound.get("flight_numbers", []),
+        "from": outbound.get("from"),
+        "to": outbound.get("to"),
+        "departure": outbound.get("departure"),
+        "arrival": outbound.get("arrival"),
+        "stops": outbound.get("stops"),
+        "duration_minutes": outbound.get("duration_minutes"),
+        # New: each direction with its own legs (outbound + return for round trips).
+        "is_round_trip": len(directions) > 1,
+        "directions": directions,
     }
 
 
