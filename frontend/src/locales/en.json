@@ -1,0 +1,55 @@
+{
+  "hero": {
+    "subtitle": "Your AI Medical Tourism Assistant",
+    "description": "Find hospitals, compare treatment costs, understand visa requirements, and plan your complete medical journey to India."
+  },
+  "greeting": {
+    "night": "Good night",
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "composer": {
+    "placeholder": "Ask MedBridge anything…"
+  },
+  "prompts": {
+    "cards": [
+      {
+        "icon": "🏥",
+        "title": "Find best hospitals",
+        "body": "Compare accredited facilities for your condition",
+        "preview": "What are the best hospitals in India for cardiac surgery?",
+        "prompt": "I need help planning a medical trip to India for knee replacement surgery. I'm from UAE and my budget is around $8,000."
+      },
+      {
+        "icon": "💰",
+        "title": "Estimate treatment costs",
+        "body": "Compare India prices vs your home-country quote",
+        "preview": "How much does heart bypass surgery cost in India vs USA?",
+        "prompt": "Can you estimate the cost of heart bypass surgery in India? I'm from Nigeria and was quoted $40,000 locally."
+      },
+      {
+        "icon": "🌍",
+        "title": "Visa & travel checklist",
+        "body": "Documents and processing time by nationality",
+        "preview": "What documents do I need for a medical visa to India?",
+        "prompt": "What visa and documents do I need to travel to India for medical treatment? I'm from Bangladesh."
+      },
+      {
+        "icon": "📋",
+        "title": "Plan my medical trip",
+        "body": "Hospital match, costs, and visa — all in one plan",
+        "preview": "Help me plan a complete medical journey to India",
+        "prompt": "I need a complete plan for medical tourism to India. I need a kidney transplant, I'm from the UAE, and my budget is $25,000."
+      }
+    ],
+    "quickActions": [
+      { "label": "Find Hospitals",    "prompt": "What are the best JCI-accredited hospitals in India for orthopedic surgery?" },
+      { "label": "Treatment Cost",    "prompt": "How much does cardiac bypass surgery cost in India compared to the US?" },
+      { "label": "Visa Requirements", "prompt": "What visa do I need to travel to India for medical treatment?" },
+      { "label": "Plan My Trip",      "prompt": "Help me plan a complete medical trip to India for liver transplant from Nigeria." },
+      { "label": "Compare Hospitals", "prompt": "Compare Apollo Hospitals, Fortis, and Medanta for cancer treatment." },
+      { "label": "Emergency Help",    "prompt": "I need urgent medical assistance in India — what should I do?" }
+    ]
+  }
+}

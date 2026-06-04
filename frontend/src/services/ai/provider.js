@@ -19,8 +19,12 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
  * Stream a message to the backend and receive SSE events.
  * @returns {{ abort: () => void }}
  */
-export function streamChat({ sessionId, message }, handlers) {
-  return openSseStream(`${BASE_URL}/chat`, { session_id: sessionId, message }, handlers);
+export function streamChat({ sessionId, message, language }, handlers) {
+  return openSseStream(
+    `${BASE_URL}/chat`,
+    { session_id: sessionId, message, language },
+    handlers
+  );
 }
 
 /** Check if the backend is reachable. */

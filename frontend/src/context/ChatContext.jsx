@@ -12,12 +12,14 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import { useMessages }  from "../hooks/useChat";
 import { useStreaming }  from "../hooks/useStreaming";
+import { useLanguage }   from "./LanguageContext";
 
 const Ctx = createContext(null);
 
 export function ChatProvider({ children }) {
   const { messages, sessionId, add, patch, patchFn, clear, popLast } = useMessages();
   const [isStreaming, setIsStreaming] = useState(false);
+  const { language } = useLanguage();
 
   const { send, stop } = useStreaming({ sessionId, add, patch, patchFn });
 
@@ -28,8 +30,8 @@ export function ChatProvider({ children }) {
 
     add({ role: "user", content: t, status: "complete", attachments });
     setIsStreaming(true);
-    send(t, () => setIsStreaming(false));
-  }, [isStreaming, add, send]);
+    send(t, language, () => setIsStreaming(false));
+  }, [isStreaming, add, send, language]);
 
   // ── stop ────────────────────────────────────────────────────────────────────
   const stopStream = useCallback(() => {
@@ -51,8 +53,8 @@ export function ChatProvider({ children }) {
     if (!lastUser) return;
     popLast();                           // remove last assistant message
     setIsStreaming(true);
-    send(lastUser.content, () => setIsStreaming(false));
-  }, [isStreaming, messages, popLast, send]);
+    send(lastUser.content, language, () => setIsStreaming(false));
+  }, [isStreaming, messages, popLast, send, language]);
 
   return (
     <Ctx.Provider value={{ messages, sessionId, isStreaming, sendMessage, stopStream, clearConversation, regenerate }}>

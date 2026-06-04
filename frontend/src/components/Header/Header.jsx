@@ -3,6 +3,7 @@ import { useState, useEffect }    from "react";
 import { useChatContext } from "../../context/ChatContext";
 import { useTheme }       from "../../context/ThemeContext";
 import { useToast }       from "../../context/ToastContext";
+import { useLanguage }    from "../../context/LanguageContext";
 import { healthCheck }    from "../../services/ai/provider";
 import { Button }         from "../ui/button";
 import { Badge }          from "../ui/badge";
@@ -35,10 +36,11 @@ function useBackendStatus() {
 }
 
 export default function Header() {
-  const { clearConversation, messages } = useChatContext();
-  const { isDark, toggle }              = useTheme();
-  const { toast }                       = useToast();
-  const backendOnline                   = useBackendStatus();
+  const { clearConversation, messages }          = useChatContext();
+  const { isDark, toggle }                        = useTheme();
+  const { toast }                                 = useToast();
+  const { language, setLanguage, languages }      = useLanguage();
+  const backendOnline                             = useBackendStatus();
 
   const hasMessages = messages.length > 0;
   const firstUser   = messages.find(m => m.role === "user");
@@ -151,6 +153,30 @@ export default function Header() {
             </Button>
           </Tooltip>
 
+          {/* Language selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Tooltip content="Language" side="bottom">
+                <Button variant="ghost" size="icon">
+                  <GlobeIcon className="w-[17px] h-[17px]" />
+                </Button>
+              </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="max-h-[340px] overflow-y-auto">
+              <DropdownMenuLabel>Language</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {languages.map(l => (
+                <DropdownMenuItem
+                  key={l.code}
+                  onClick={() => setLanguage(l.code)}
+                  icon={language === l.code ? <CheckIcon className="w-4 h-4" /> : <span className="w-4 h-4" />}
+                >
+                  {l.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Settings menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -213,3 +239,5 @@ const DotsIcon     = ({ className }) => <svg className={className} fill="none" v
 const TrashIcon    = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 const DownloadIcon = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
 const ChatIcon     = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
+const GlobeIcon    = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M3.6 9h16.8 M3.6 15h16.8 M12 3a15 15 0 010 18 M12 3a15 15 0 000 18" /></svg>;
+const CheckIcon    = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" /></svg>;

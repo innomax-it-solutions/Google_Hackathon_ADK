@@ -1,0 +1,55 @@
+{
+  "hero": {
+    "subtitle": "Seu assistente de IA para turismo médico",
+    "description": "Encontre hospitais, compare custos de tratamento, entenda os requisitos de visto e planeje toda a sua jornada médica para a Índia."
+  },
+  "greeting": {
+    "night": "Boa noite",
+    "morning": "Bom dia",
+    "afternoon": "Boa tarde",
+    "evening": "Boa noite"
+  },
+  "composer": {
+    "placeholder": "Pergunte qualquer coisa ao MedBridge…"
+  },
+  "prompts": {
+    "cards": [
+      {
+        "icon": "🏥",
+        "title": "Encontrar os melhores hospitais",
+        "body": "Compare instalações credenciadas para a sua condição",
+        "preview": "Quais são os melhores hospitais na Índia para cirurgia cardíaca?",
+        "prompt": "Preciso de ajuda para planejar uma viagem médica à Índia para uma cirurgia de prótese de joelho. Sou dos Emirados Árabes Unidos e meu orçamento é de cerca de US$ 8.000."
+      },
+      {
+        "icon": "💰",
+        "title": "Estimar custos de tratamento",
+        "body": "Compare os preços da Índia com o orçamento do seu país",
+        "preview": "Quanto custa uma cirurgia de ponte de safena na Índia em comparação com os EUA?",
+        "prompt": "Você pode estimar o custo de uma cirurgia de ponte de safena na Índia? Sou da Nigéria e me cotaram US$ 40.000 localmente."
+      },
+      {
+        "icon": "🌍",
+        "title": "Lista de visto e viagem",
+        "body": "Documentos e prazos de processamento por nacionalidade",
+        "preview": "Quais documentos preciso para um visto médico para a Índia?",
+        "prompt": "Qual visto e quais documentos preciso para viajar à Índia para tratamento médico? Sou de Bangladesh."
+      },
+      {
+        "icon": "📋",
+        "title": "Planejar minha viagem médica",
+        "body": "Hospital, custos e visto — tudo em um só plano",
+        "preview": "Ajude-me a planejar uma jornada médica completa à Índia",
+        "prompt": "Preciso de um plano completo para turismo médico na Índia. Preciso de um transplante de rim, sou dos Emirados Árabes Unidos e meu orçamento é de US$ 25.000."
+      }
+    ],
+    "quickActions": [
+      { "label": "Encontrar hospitais",     "prompt": "Quais são os melhores hospitais credenciados pela JCI na Índia para cirurgia ortopédica?" },
+      { "label": "Custo do tratamento",     "prompt": "Quanto custa uma cirurgia de ponte de safena na Índia em comparação com os EUA?" },
+      { "label": "Requisitos de visto",     "prompt": "Qual visto preciso para viajar à Índia para tratamento médico?" },
+      { "label": "Planejar minha viagem",   "prompt": "Ajude-me a planejar uma viagem médica completa à Índia para um transplante de fígado a partir da Nigéria." },
+      { "label": "Comparar hospitais",      "prompt": "Compare os hospitais Apollo, Fortis e Medanta para tratamento de câncer." },
+      { "label": "Ajuda de emergência",     "prompt": "Preciso de assistência médica urgente na Índia — o que devo fazer?" }
+    ]
+  }
+}

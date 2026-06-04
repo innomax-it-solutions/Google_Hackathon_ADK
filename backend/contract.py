@@ -101,3 +101,4 @@ class IntakeRequest(BaseModel):
     budget_usd: int = Field(gt=0)
     timeline_weeks: int = Field(ge=1, default=6)
     session_id: str | None = Field(default=None, description="Reuse to continue a conversation.")
+    language: str | None = Field(default=None, description="Preferred reply language (ISO 639-1, e.g. ar, es).")

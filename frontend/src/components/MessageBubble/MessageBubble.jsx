@@ -5,6 +5,8 @@ import { MessageAttachments } from "../FileAttachment/FileAttachment";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge }   from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
+import JourneyPlanCard   from "../JourneyPlanCard/JourneyPlanCard";
+import CardErrorBoundary from "../JourneyPlanCard/CardErrorBoundary";
 
 const TOOL_LABELS = {
   find_hospitals:         "Searching hospitals",
@@ -52,6 +54,13 @@ function AssistantMessage({ message, isLast }) {
   const isError     = message.status === "error";
   const isEmpty     = !message.content && isStreaming;
 
+  // If the agent used its tools, render the structured Journey Plan dashboard
+  // (Venkat's card) above the narrative, fed by the captured tool payloads.
+  const td       = message.toolData || {};
+  const hasPlan  = !isError && (
+    td.find_hospitals || td.estimate_cost || td.get_document_checklist || td.request_appointment
+  );
+
   return (
     <motion.div
       variants={msgVariants}
@@ -83,8 +92,25 @@ function AssistantMessage({ message, isLast }) {
           </div>
         )}
 
-        {/* Skeleton loading state */}
-        {isEmpty && (
+        {/* Structured Journey Plan card (renders once any tool returns data) */}
+        {hasPlan && (
+          <div className="mb-3">
+            <CardErrorBoundary>
+              <JourneyPlanCard
+                intake={message.intake}
+                hospital={td.find_hospitals}
+                cost={td.estimate_cost}
+                docs={td.get_document_checklist}
+                booking={td.request_appointment}
+                summary={message.content}
+                isLoading={isStreaming}
+              />
+            </CardErrorBoundary>
+          </div>
+        )}
+
+        {/* Skeleton loading state (the card shows its own skeletons when active) */}
+        {isEmpty && !hasPlan && (
           <div className="space-y-2.5 w-full max-w-xs">
             <Skeleton className="h-3.5 w-3/4" />
             <Skeleton className="h-3.5 w-full" />

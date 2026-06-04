@@ -1,0 +1,55 @@
+{
+  "hero": {
+    "subtitle": "Votre assistant IA de tourisme médical",
+    "description": "Trouvez des hôpitaux, comparez les coûts des traitements, comprenez les exigences de visa et planifiez l'intégralité de votre voyage médical en Inde."
+  },
+  "greeting": {
+    "night": "Bonne nuit",
+    "morning": "Bonjour",
+    "afternoon": "Bon après-midi",
+    "evening": "Bonsoir"
+  },
+  "composer": {
+    "placeholder": "Posez n'importe quelle question à MedBridge…"
+  },
+  "prompts": {
+    "cards": [
+      {
+        "icon": "🏥",
+        "title": "Trouver les meilleurs hôpitaux",
+        "body": "Comparez des établissements accrédités pour votre pathologie",
+        "preview": "Quels sont les meilleurs hôpitaux en Inde pour la chirurgie cardiaque ?",
+        "prompt": "J'ai besoin d'aide pour planifier un voyage médical en Inde pour une prothèse du genou. Je viens des Émirats arabes unis et mon budget est d'environ 8 000 USD."
+      },
+      {
+        "icon": "💰",
+        "title": "Estimer les coûts du traitement",
+        "body": "Comparez les prix en Inde avec le devis de votre pays",
+        "preview": "Combien coûte un pontage cardiaque en Inde par rapport aux États-Unis ?",
+        "prompt": "Pouvez-vous estimer le coût d'un pontage cardiaque en Inde ? Je viens du Nigéria et on m'a proposé 40 000 USD localement."
+      },
+      {
+        "icon": "🌍",
+        "title": "Visa et liste de voyage",
+        "body": "Documents et délais de traitement selon la nationalité",
+        "preview": "De quels documents ai-je besoin pour un visa médical pour l'Inde ?",
+        "prompt": "De quel visa et de quels documents ai-je besoin pour voyager en Inde pour un traitement médical ? Je viens du Bangladesh."
+      },
+      {
+        "icon": "📋",
+        "title": "Planifier mon voyage médical",
+        "body": "Hôpital, coûts et visa — le tout dans un seul plan",
+        "preview": "Aidez-moi à planifier un voyage médical complet en Inde",
+        "prompt": "J'ai besoin d'un plan complet pour un tourisme médical en Inde. J'ai besoin d'une greffe de rein, je viens des Émirats arabes unis et mon budget est de 25 000 USD."
+      }
+    ],
+    "quickActions": [
+      { "label": "Trouver des hôpitaux",   "prompt": "Quels sont les meilleurs hôpitaux accrédités JCI en Inde pour la chirurgie orthopédique ?" },
+      { "label": "Coût du traitement",     "prompt": "Combien coûte un pontage cardiaque en Inde par rapport aux États-Unis ?" },
+      { "label": "Exigences de visa",      "prompt": "De quel visa ai-je besoin pour voyager en Inde pour un traitement médical ?" },
+      { "label": "Planifier mon voyage",   "prompt": "Aidez-moi à planifier un voyage médical complet en Inde pour une greffe du foie depuis le Nigéria." },
+      { "label": "Comparer les hôpitaux",  "prompt": "Comparez les hôpitaux Apollo, Fortis et Medanta pour le traitement du cancer." },
+      { "label": "Aide d'urgence",         "prompt": "J'ai besoin d'une assistance médicale urgente en Inde — que dois-je faire ?" }
+    ]
+  }
+}

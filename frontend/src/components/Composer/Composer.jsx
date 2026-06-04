@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChatContext } from "../../context/ChatContext";
 import { useToast }       from "../../context/ToastContext";
+import { useLanguage }    from "../../context/LanguageContext";
 import { Button }         from "../ui/button";
 import { Tooltip }        from "../ui/tooltip";
 import {
@@ -37,6 +38,7 @@ const PROMPT_LIBRARY = [
 export default function Composer() {
   const { sendMessage, stopStream, isStreaming } = useChatContext();
   const { toast }                                = useToast();
+  const { t }                                    = useLanguage();
 
   const [text,     setText]     = useState("");
   const [files,    setFiles]    = useState([]);
@@ -170,7 +172,7 @@ export default function Composer() {
               onKeyDown={handleKey}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              placeholder="Ask MedBridge anything…"
+              placeholder={t("composer.placeholder")}
               disabled={isStreaming}
               rows={2}
               aria-label="Message input"

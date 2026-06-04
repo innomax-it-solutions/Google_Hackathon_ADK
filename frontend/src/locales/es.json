@@ -1,0 +1,55 @@
+{
+  "hero": {
+    "subtitle": "Tu asistente de IA para turismo médico",
+    "description": "Encuentra hospitales, compara costos de tratamiento, comprende los requisitos de visa y planifica tu viaje médico completo a la India."
+  },
+  "greeting": {
+    "night": "Buenas noches",
+    "morning": "Buenos días",
+    "afternoon": "Buenas tardes",
+    "evening": "Buenas noches"
+  },
+  "composer": {
+    "placeholder": "Pregúntale lo que quieras a MedBridge…"
+  },
+  "prompts": {
+    "cards": [
+      {
+        "icon": "🏥",
+        "title": "Encontrar los mejores hospitales",
+        "body": "Compara centros acreditados para tu afección",
+        "preview": "¿Cuáles son los mejores hospitales en la India para cirugía cardíaca?",
+        "prompt": "Necesito ayuda para planificar un viaje médico a la India para una cirugía de reemplazo de rodilla. Soy de los Emiratos Árabes Unidos y mi presupuesto es de unos 8.000 USD."
+      },
+      {
+        "icon": "💰",
+        "title": "Estimar costos de tratamiento",
+        "body": "Compara los precios de la India con la cotización de tu país",
+        "preview": "¿Cuánto cuesta una cirugía de bypass cardíaco en la India frente a EE. UU.?",
+        "prompt": "¿Puedes estimar el costo de una cirugía de bypass cardíaco en la India? Soy de Nigeria y me cotizaron 40.000 USD localmente."
+      },
+      {
+        "icon": "🌍",
+        "title": "Lista de visa y viaje",
+        "body": "Documentos y tiempos de trámite según nacionalidad",
+        "preview": "¿Qué documentos necesito para una visa médica a la India?",
+        "prompt": "¿Qué visa y documentos necesito para viajar a la India por tratamiento médico? Soy de Bangladés."
+      },
+      {
+        "icon": "📋",
+        "title": "Planear mi viaje médico",
+        "body": "Hospital, costos y visa — todo en un solo plan",
+        "preview": "Ayúdame a planificar un viaje médico completo a la India",
+        "prompt": "Necesito un plan completo para turismo médico a la India. Necesito un trasplante de riñón, soy de los Emiratos Árabes Unidos y mi presupuesto es de 25.000 USD."
+      }
+    ],
+    "quickActions": [
+      { "label": "Buscar hospitales",     "prompt": "¿Cuáles son los mejores hospitales acreditados por la JCI en la India para cirugía ortopédica?" },
+      { "label": "Costo del tratamiento", "prompt": "¿Cuánto cuesta una cirugía de bypass cardíaco en la India comparado con EE. UU.?" },
+      { "label": "Requisitos de visa",    "prompt": "¿Qué visa necesito para viajar a la India por tratamiento médico?" },
+      { "label": "Planear mi viaje",      "prompt": "Ayúdame a planificar un viaje médico completo a la India para un trasplante de hígado desde Nigeria." },
+      { "label": "Comparar hospitales",   "prompt": "Compara los hospitales Apollo, Fortis y Medanta para tratamiento de cáncer." },
+      { "label": "Ayuda de emergencia",   "prompt": "Necesito asistencia médica urgente en la India, ¿qué debo hacer?" }
+    ]
+  }
+}

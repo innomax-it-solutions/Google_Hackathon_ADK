@@ -1,60 +1,20 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useChatContext } from "../../context/ChatContext";
+import { useLanguage }    from "../../context/LanguageContext";
 import { Button }  from "../ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Badge }   from "../ui/badge";
 
-/* ── Data ──────────────────────────────────────────────────────────────── */
-
-const PROMPT_CARDS = [
-  {
-    icon: "🏥",
-    title: "Find best hospitals",
-    body: "Compare accredited facilities for your condition",
-    preview: "What are the best hospitals in India for cardiac surgery?",
-    prompt: "I need help planning a medical trip to India for knee replacement surgery. I'm from UAE and my budget is around $8,000.",
-  },
-  {
-    icon: "💰",
-    title: "Estimate treatment costs",
-    body: "Compare India prices vs your home-country quote",
-    preview: "How much does heart bypass surgery cost in India vs USA?",
-    prompt: "Can you estimate the cost of heart bypass surgery in India? I'm from Nigeria and was quoted $40,000 locally.",
-  },
-  {
-    icon: "🌍",
-    title: "Visa & travel checklist",
-    body: "Documents and processing time by nationality",
-    preview: "What documents do I need for a medical visa to India?",
-    prompt: "What visa and documents do I need to travel to India for medical treatment? I'm from Bangladesh.",
-  },
-  {
-    icon: "📋",
-    title: "Plan my medical trip",
-    body: "Hospital match, costs, and visa — all in one plan",
-    preview: "Help me plan a complete medical journey to India",
-    prompt: "I need a complete plan for medical tourism to India. I need a kidney transplant, I'm from the UAE, and my budget is $25,000.",
-  },
-];
-
-const QUICK_ACTIONS = [
-  { label: "Find Hospitals",      prompt: "What are the best JCI-accredited hospitals in India for orthopedic surgery?" },
-  { label: "Treatment Cost",      prompt: "How much does cardiac bypass surgery cost in India compared to the US?" },
-  { label: "Visa Requirements",   prompt: "What visa do I need to travel to India for medical treatment?" },
-  { label: "Plan My Trip",        prompt: "Help me plan a complete medical trip to India for liver transplant from Nigeria." },
-  { label: "Compare Hospitals",   prompt: "Compare Apollo Hospitals, Fortis, and Medanta for cancer treatment." },
-  { label: "Emergency Help",      prompt: "I need urgent medical assistance in India — what should I do?" },
-];
-
 /* ── Animations ─────────────────────────────────────────────────────────── */
 
-function greeting() {
+// Time-of-day greeting key, resolved to the active language via t("greeting.*").
+function greetingKey() {
   const h = new Date().getHours();
-  if (h < 5)  return "Good night";
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+  if (h < 5)  return "night";
+  if (h < 12) return "morning";
+  if (h < 17) return "afternoon";
+  return "evening";
 }
 
 const containerVariants = {
@@ -70,6 +30,10 @@ const itemVariants = {
 
 export default function SuggestedPrompts() {
   const { sendMessage } = useChatContext();
+  const { t }           = useLanguage();
+
+  const promptCards  = t("prompts.cards");
+  const quickActions = t("prompts.quickActions");
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-4 py-6 overflow-y-auto">
@@ -90,14 +54,13 @@ export default function SuggestedPrompts() {
           </div>
 
           <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-tight text-[var(--color-text-primary)] leading-tight">
-            {greeting()}
+            {t(`greeting.${greetingKey()}`)}
           </h1>
           <p className="mt-1.5 text-[16px] font-medium text-[var(--color-text-secondary)]">
-            Your AI Medical Tourism Assistant
+            {t("hero.subtitle")}
           </p>
           <p className="mt-2.5 text-[13.5px] text-[var(--color-text-tertiary)] leading-relaxed max-w-sm mx-auto">
-            Find hospitals, compare treatment costs, understand visa requirements,
-            and plan your complete medical journey to India.
+            {t("hero.description")}
           </p>
         </motion.div>
 
@@ -108,7 +71,7 @@ export default function SuggestedPrompts() {
           animate="show"
           className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6"
         >
-          {PROMPT_CARDS.map(p => (
+          {promptCards.map(p => (
             <PromptCard key={p.title} data={p} onSelect={() => sendMessage(p.prompt)} />
           ))}
         </motion.div>
@@ -120,7 +83,7 @@ export default function SuggestedPrompts() {
           transition={{ delay: 0.55, duration: 0.3 }}
           className="flex flex-wrap justify-center gap-2"
         >
-          {QUICK_ACTIONS.map(a => (
+          {quickActions.map(a => (
             <Button
               key={a.label}
               variant="outline"

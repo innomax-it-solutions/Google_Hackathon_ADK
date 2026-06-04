@@ -87,6 +87,26 @@ async def _stream(user_id: str, session_id: str, text: str):
         yield _sse("done", {})
 
 
+# ISO 639-1 code -> language name used in the reply-language directive.
+LANGUAGE_NAMES = {
+    "en": "English", "zh": "Mandarin Chinese", "hi": "Hindi", "es": "Spanish",
+    "fr": "French", "ar": "Arabic", "bn": "Bengali", "pt": "Portuguese",
+    "ru": "Russian", "ur": "Urdu",
+}
+
+
+def _with_language(text: str, language: str | None) -> str:
+    """Prefix a reply-language directive so the agent answers in the user's language.
+
+    English (or an unknown/blank code) is a no-op — the agent mirrors the user's
+    language by default. Gemini does the actual translation natively.
+    """
+    name = LANGUAGE_NAMES.get((language or "en").lower())
+    if not name or name == "English":
+        return text
+    return f"[Reply entirely in {name}.]\n\n{text}"
+
+
 @app.post("/run")
 async def run(intake: IntakeRequest):
     session_id = intake.session_id or uuid.uuid4().hex
@@ -97,7 +117,11 @@ async def run(intake: IntakeRequest):
         "Please plan my medical journey to India and show me the full Journey Plan."
     )
     return StreamingResponse(
-        _stream(user_id="web", session_id=session_id, text=prompt),
+        _stream(
+            user_id="web",
+            session_id=session_id,
+            text=_with_language(prompt, intake.language),
+        ),
         media_type="text/event-stream",
     )
 
@@ -105,13 +129,18 @@ async def run(intake: IntakeRequest):
 class ChatRequest(BaseModel):
     session_id: str
     message: str
+    language: str | None = None
 
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
     """Continue an existing conversation (e.g. 'what about Thailand?', 'book it')."""
     return StreamingResponse(
-        _stream(user_id="web", session_id=req.session_id, text=req.message),
+        _stream(
+            user_id="web",
+            session_id=req.session_id,
+            text=_with_language(req.message, req.language),
+        ),
         media_type="text/event-stream",
     )
 

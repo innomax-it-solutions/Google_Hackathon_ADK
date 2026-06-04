@@ -7,6 +7,6 @@
 
 import { streamChat } from "./ai/provider";
 
-export function sendChatMessage(sessionId, message, handlers) {
-  return streamChat({ sessionId, message }, handlers);
+export function sendChatMessage(sessionId, message, language, handlers) {
+  return streamChat({ sessionId, message, language }, handlers);
 }
