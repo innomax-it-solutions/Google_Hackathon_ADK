@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import date as _date
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -61,7 +62,14 @@ async def _stream(user_id: str, session_id: str, text: str):
     except Exception:
         pass  # session already exists — reuse it
 
-    message = types.Content(role="user", parts=[types.Part(text=text)])
+    # The model otherwise defaults to its training-cutoff year and invents PAST
+    # travel dates, which the flight API rejects. Anchor it to the real date.
+    today = _date.today().isoformat()
+    dated = (
+        f"[Today's date is {today}. For any flight search, treat this as the current "
+        f"date and only use future dates — never a past year.]\n\n{text}"
+    )
+    message = types.Content(role="user", parts=[types.Part(text=dated)])
 
     yield _sse("session", {"session_id": session_id})
     try:
