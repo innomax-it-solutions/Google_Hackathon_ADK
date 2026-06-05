@@ -167,6 +167,17 @@ def flight_search(
         departure, arrival, stops, published_fare, currency, is_lcc,
         is_refundable}. On failure, status is "auth_error"/"error" with a message.
     """
+    # A medical trip is a ROUND TRIP by default: the patient flies home after
+    # treatment. If no return date was supplied, assume one ~3 weeks later so the
+    # search always returns BOTH an outbound and a return (inbound) leg.
+    if not (return_date or "").strip():
+        try:
+            from datetime import datetime, timedelta
+            _dep = datetime.strptime(departure_date.strip(), "%Y-%m-%d")
+            return_date = (_dep + timedelta(days=21)).strftime("%Y-%m-%d")
+        except Exception:
+            return_date = ""
+
     segments = [{
         "Origin": origin.strip().upper(),
         "Destination": destination.strip().upper(),
