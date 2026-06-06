@@ -44,15 +44,12 @@ export function streamIntake(intake, handlers) {
  * @returns {Promise<{cost: object, flights: object|null}>}
  */
 export async function estimateHospital(params, signal) {
-  const url = `${BASE_URL}/estimate_hospital`;
-  console.info("[MedBridge] → POST", url, { hospital: params?.hospital_id, skip_flights: !!params?.skip_flights });
-  const res = await fetch(url, {
+  const res = await fetch(`${BASE_URL}/estimate_hospital`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
     signal,
   });
-  console.info("[MedBridge] ←", url, "status", res.status, res.headers.get("content-type"));
   if (!res.ok) throw new Error(`estimate_hospital failed: ${res.status}`);
   return res.json();
 }
