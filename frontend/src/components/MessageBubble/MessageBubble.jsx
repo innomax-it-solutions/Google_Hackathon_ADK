@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { renderMarkdown } from "../../utils/formatters";
 import MessageActions     from "../MessageActions/MessageActions";
 import { MessageAttachments } from "../FileAttachment/FileAttachment";
@@ -132,14 +133,26 @@ function AssistantMessage({ message, isLast }) {
           </div>
         )}
 
-        {/* Content */}
+        {/* Content — after a plan card the narrative is tucked into a collapsible
+            "Description" box; without a card it renders inline as a normal reply. */}
         {!isEmpty && !isError && (
-          <div className="assistant-prose">
-            {renderMarkdown(message.content)}
-            {isStreaming && (
-              <span className="inline-block w-[2.5px] h-[1.1em] bg-[var(--color-accent)] ml-0.5 animate-[cursorBlink_1s_ease-in-out_infinite] align-text-bottom rounded-full" />
-            )}
-          </div>
+          hasPlan ? (
+            <DescriptionBox>
+              <div className="assistant-prose">
+                {renderMarkdown(message.content)}
+                {isStreaming && (
+                  <span className="inline-block w-[2.5px] h-[1.1em] bg-[var(--color-accent)] ml-0.5 animate-[cursorBlink_1s_ease-in-out_infinite] align-text-bottom rounded-full" />
+                )}
+              </div>
+            </DescriptionBox>
+          ) : (
+            <div className="assistant-prose">
+              {renderMarkdown(message.content)}
+              {isStreaming && (
+                <span className="inline-block w-[2.5px] h-[1.1em] bg-[var(--color-accent)] ml-0.5 animate-[cursorBlink_1s_ease-in-out_infinite] align-text-bottom rounded-full" />
+              )}
+            </div>
+          )
         )}
 
         {/* Actions */}
@@ -151,7 +164,50 @@ function AssistantMessage({ message, isLast }) {
   );
 }
 
+/* ── Collapsible "Description" box for the narrative under a plan card ─────── */
+function DescriptionBox({ children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left hover:bg-[var(--color-surface-2)] transition-colors"
+      >
+        <span className="text-[11px] font-bold tracking-wider uppercase text-[var(--color-text-tertiary)]">
+          Description
+        </span>
+        <span className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-accent)]">
+          {open ? "Hide" : "Show"}
+          <ChevronIcon className={`w-4 h-4 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 pt-1 border-t border-[var(--color-border-subtle)]">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ── Icons ── */
+const ChevronIcon = ({ className = "w-4 h-4" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+);
 const HeartIcon = () => (
   <svg className="w-[15px] h-[15px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
