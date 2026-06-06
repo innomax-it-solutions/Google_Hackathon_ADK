@@ -70,6 +70,18 @@ export default function JourneyPlanCard({
   const { sendMessage, isStreaming } = useChatContext();
   const reduce = useReducedMotion();
 
+  // Which panel is currently active (hovered / focused / tapped). null = none.
+  // The active panel rises and reveals extra detail; the others recede.
+  const [active, setActive] = useState(null);
+  const coord = (key) => ({
+    active: active === key,
+    dimmed: active !== null && active !== key,
+    onActivate: () => setActive(key),
+    onToggle: () => setActive((k) => (k === key ? null : key)),
+    onDeactivate: () => setActive((k) => (k === key ? null : k)),
+    reduce,
+  });
+
   // Flight context (origin airport + departure date) is derived from the
   // recommended hospital's search; it only exists once that search has returned.
   const flightCtx = deriveFlightContext(flights, flightParams);
@@ -231,8 +243,8 @@ export default function JourneyPlanCard({
         {booking && <BookingBanner booking={booking} />}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          <Panel icon={<IconHospital />} title="Recommended hospitals" data={hospital} isLoading={isLoading}
-            render={() => (
+          <Panel {...coord("hospitals")} icon={<IconHospital />} title="Recommended hospitals" data={hospital} isLoading={isLoading}
+            render={(expanded) => (
               <HospitalsBody
                 list={list}
                 status={hospital?.status}
@@ -242,31 +254,33 @@ export default function JourneyPlanCard({
                 onSelect={onSelect}
                 onBook={onBook}
                 isStreaming={isStreaming}
+                expanded={expanded}
+                reduce={reduce}
                 supportLang={hospital?.requested_interpreter_language || intake?.support_language}
               />
             )} />
 
-          <Panel icon={<IconCost />} title="Estimated cost" data={costPanelData} isLoading={initialSkeleton}
-            render={() => selError
+          <Panel {...coord("cost")} icon={<IconCost />} title="Estimated cost" data={costPanelData} isLoading={initialSkeleton}
+            render={(expanded) => selError
               ? <RetryNote onRetry={() => onSelect(selectedId)} />
               : costFetching
                 ? <ProgressSteps steps={["Fetching treatment costs", "Building your plan"]} />
-                : <SwapIn k={selectedId}><CostBody cost={selCost} flightsPending={flightsPending} procedureLabel={procedureLabel} /></SwapIn>} />
+                : <SwapIn k={selectedId}><CostBody cost={selCost} flightsPending={flightsPending} procedureLabel={procedureLabel} expanded={expanded} reduce={reduce} /></SwapIn>} />
 
-          <Panel icon={<IconPlane />} title="Flights" data={flightPanelData} isLoading={initialSkeleton}
-            render={() => selError
+          <Panel {...coord("flights")} icon={<IconPlane />} title="Flights" data={flightPanelData} isLoading={initialSkeleton}
+            render={(expanded) => selError
               ? <RetryNote onRetry={() => onSelect(selectedId)} />
               : flightsPending
                 ? <ProgressSteps steps={[`Searching live flights${selCity ? ` to ${selCity}` : ""}`, "Comparing fares", "Pricing your journey"]} />
-                : <SwapIn k={selectedId}><FlightsBody flight={selectedFlight} cost={selCost} /></SwapIn>} />
+                : <SwapIn k={selectedId}><FlightsBody flight={selectedFlight} cost={selCost} expanded={expanded} reduce={reduce} /></SwapIn>} />
 
-          <Panel icon={<IconChecklist />} title="Travel checklist" data={docs} isLoading={isLoading}
-            render={() => <ChecklistBody docs={docs} />} />
+          <Panel {...coord("checklist")} icon={<IconChecklist />} title="Travel checklist" data={docs} isLoading={isLoading}
+            render={(expanded) => <ChecklistBody docs={docs} expanded={expanded} reduce={reduce} />} />
 
-          <Panel icon={<IconTimeline />} title="Timeline" data={costPanelData} isLoading={initialSkeleton} className="lg:col-span-2"
-            render={() => costFetching
+          <Panel {...coord("timeline")} icon={<IconTimeline />} title="Timeline" data={costPanelData} isLoading={initialSkeleton} className="lg:col-span-2"
+            render={(expanded) => costFetching
               ? <ProgressSteps steps={["Preparing recovery timeline"]} />
-              : <SwapIn k={selectedId}><TimelineBody cost={selCost} procedureLabel={procedureLabel} /></SwapIn>} />
+              : <SwapIn k={selectedId}><TimelineBody cost={selCost} procedureLabel={procedureLabel} expanded={expanded} reduce={reduce} /></SwapIn>} />
         </div>
 
         <CompareStrip list={list} cache={cache} selectedId={selectedId} recommendedId={recommendedId} onSelect={onSelect} />
@@ -395,11 +409,16 @@ function Meta({ label, children }) {
 
 // --- Panel shell -----------------------------------------------------------
 
-function Panel({ icon, title, data, isLoading, render, className = "" }) {
+function Panel({
+  icon, title, data, isLoading, render, className = "",
+  active, dimmed, onActivate, onDeactivate, onToggle, reduce,
+}) {
   let body;
+  let hasData = false;
   if (data) {
+    hasData = true;
     try {
-      body = render();
+      body = render(active);
     } catch (err) {
       console.error(`[MedBridge] Failed to render "${title}":`, err);
       body = <p className="text-sm text-[var(--color-text-secondary)]">See the summary below for these details.</p>;
@@ -412,28 +431,76 @@ function Panel({ icon, title, data, isLoading, render, className = "" }) {
 
   return (
     <motion.section
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.25, ease: EASE }}
-      className={`group relative rounded-xl border border-[var(--color-border)] p-4
-        bg-[var(--color-surface)] shadow-surface transition-[box-shadow,border-color] duration-300
-        hover:border-[var(--color-accent)]/40 hover:shadow-card-hover ${className}`}
+      tabIndex={hasData ? 0 : -1}
+      onMouseEnter={hasData ? onActivate : undefined}
+      onMouseLeave={hasData ? onDeactivate : undefined}
+      onFocus={hasData ? onActivate : undefined}
+      onBlur={hasData ? (e) => { if (!e.currentTarget.contains(e.relatedTarget)) onDeactivate(); } : undefined}
+      onClick={hasData ? onToggle : undefined}
+      animate={reduce
+        ? { opacity: dimmed ? 0.7 : 1 }
+        : { scale: active ? 1.012 : dimmed ? 0.985 : 1, opacity: dimmed ? 0.62 : 1, y: active ? -2 : 0 }}
+      transition={{ duration: 0.28, ease: EASE }}
+      style={{ willChange: "transform" }}
+      className={`group relative rounded-xl border p-4 outline-none cursor-default
+        bg-[var(--color-surface)] transition-[box-shadow,border-color] duration-300
+        ${active
+          ? "border-[var(--color-accent)] shadow-card-hover z-10"
+          : "border-[var(--color-border)] shadow-surface hover:border-[var(--color-accent)]/40"}
+        ${className}`}
     >
-      {/* accent top-bar that wipes in on hover */}
+      {/* accent top-bar that wipes in on activate */}
       <span
         aria-hidden
-        className="pointer-events-none absolute left-4 right-4 top-0 h-[2px] rounded-full origin-left scale-x-0
-          group-hover:scale-x-100 transition-transform duration-300"
-        style={{ background: "linear-gradient(90deg, var(--color-accent), transparent)" }}
+        className="pointer-events-none absolute left-4 right-4 top-0 h-[2px] rounded-full origin-left transition-transform duration-300"
+        style={{
+          background: "linear-gradient(90deg, var(--color-accent), transparent)",
+          transform: active ? "scaleX(1)" : "scaleX(0)",
+        }}
       />
       <header className="flex items-center gap-2 mb-3">
-        <span className="grid place-items-center w-7 h-7 rounded-lg transition-colors duration-300
-          bg-[var(--color-accent-subtle)] text-[var(--color-accent)] group-hover:bg-[var(--color-accent)] group-hover:text-white">
+        <span className={`grid place-items-center w-7 h-7 rounded-lg transition-colors duration-300
+          ${active ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"}`}>
           {icon}
         </span>
         <h3 className="text-[11px] font-bold tracking-wider uppercase text-[var(--color-text-tertiary)]">{title}</h3>
+        <IconChevron className={`ml-auto w-4 h-4 text-[var(--color-text-tertiary)] transition-transform duration-300
+          ${active ? "rotate-180 text-[var(--color-accent)]" : "opacity-0 group-hover:opacity-100"}`} />
       </header>
       {body}
     </motion.section>
+  );
+}
+
+// Smoothly reveals hidden content on activate; instant under reduced-motion.
+function Reveal({ show, reduce, children }) {
+  if (reduce) return show ? <div>{children}</div> : null;
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.div
+          key="reveal"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3, ease: EASE }}
+          className="overflow-hidden"
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// Small "there's more — hover to see it" affordance, hidden once expanded.
+function MoreHint({ show, children }) {
+  if (!show) return null;
+  return (
+    <p className="pt-2 mt-1 flex items-center gap-1 text-[11px] font-medium text-[var(--color-accent)] opacity-80 group-hover:opacity-100 transition-opacity">
+      <IconChevron className="w-3 h-3" />
+      {children}
+    </p>
   );
 }
 
@@ -450,7 +517,7 @@ function PanelSkeleton() {
 
 // --- Recommended hospitals -------------------------------------------------
 
-function HospitalsBody({ list, status, selectedId, recommendedId, cache, onSelect, onBook, isStreaming, supportLang }) {
+function HospitalsBody({ list, status, selectedId, recommendedId, cache, onSelect, onBook, isStreaming, supportLang, expanded, reduce }) {
   const isGeneral = status === "general_recommendation";
 
   if (!list.length) {
@@ -459,87 +526,102 @@ function HospitalsBody({ list, status, selectedId, recommendedId, cache, onSelec
     return <p className="text-sm font-semibold text-[var(--color-text-primary)]">{name}</p>;
   }
 
+  // Show the top 2 always; reveal the rest on hover.
+  const COLLAPSED = 2;
+  const head = list.slice(0, COLLAPSED);
+  const tail = list.slice(COLLAPSED);
+
+  const Row = (h, i) => {
+    const { pct, label } = matchInfo(h, i, status);
+    const isRec = h?.hospital_id === recommendedId;
+    const isSel = h?.hospital_id === selectedId;
+    const entry = cache?.[h?.hospital_id];
+    const hasCost = entry?.cost && entry.cost.status !== "unavailable";
+    const total = hasCost
+      ? range(entry.cost.total_usd_min, entry.cost.total_usd_max, fmtUsd)
+      : range(h?.est_usd_min, h?.est_usd_max, fmtUsd);
+    const totalLabel = (entry?.status === "ready") ? "Total " : hasCost ? "Treatment " : "From ";
+    return (
+      <button
+        type="button"
+        key={h?.hospital_id || i}
+        onClick={(e) => { e.stopPropagation(); onSelect(h?.hospital_id); }}
+        aria-pressed={isSel}
+        className={`w-full text-left flex items-start justify-between gap-3 rounded-lg p-2.5 transition-colors ${
+          isSel ? "bg-[var(--color-accent-subtle)] ring-2 ring-[var(--color-accent)]" : "hover:bg-[var(--color-surface-2)] ring-1 ring-transparent"
+        }`}
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-1.5 flex-wrap">
+            <span className={expanded ? "" : "truncate"}>{h?.name || "Hospital"}</span>
+            {isRec && (
+              <span className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-accent)] bg-[var(--color-accent-subtle)] rounded px-1 py-0.5">
+                Recommended
+              </span>
+            )}
+            {h?.international_desk && (
+              <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">• intl desk</span>
+            )}
+          </p>
+          <p className="text-xs text-[var(--color-text-secondary)]">
+            {[h?.city, h?.tier ? `Tier ${h.tier}` : null].filter(Boolean).join(" · ")}
+          </p>
+          {supportLang && <InterpreterLine has={hasTranslator(h, supportLang)} lang={supportLang} />}
+          {total && (
+            <p className="text-[11px] mt-0.5 text-[var(--color-text-secondary)] tabular-nums">
+              {totalLabel}
+              <span className="font-semibold text-[var(--color-text-primary)]">{total}</span>
+              {!hasCost && entry?.status !== "loading" && <span className="text-[var(--color-text-tertiary)]"> est.</span>}
+              {entry?.status === "partial" && <span className="text-[var(--color-accent)]"> +flights…</span>}
+            </p>
+          )}
+          {isSel && onBook && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onBook(h); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onBook(h); } }}
+              aria-disabled={isStreaming}
+              className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-md px-2.5 py-1 transition-colors ${
+                isStreaming
+                  ? "bg-[var(--color-surface-2)] text-[var(--color-text-tertiary)] cursor-not-allowed"
+                  : "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] cursor-pointer"
+              }`}
+            >
+              <IconCheck className="w-3 h-3" /> Book this hospital
+            </span>
+          )}
+        </div>
+        <div className="text-right flex-shrink-0">
+          {entry?.status === "loading" || entry?.status === "partial" ? (
+            <Spinner className="w-4 h-4 ml-auto" />
+          ) : entry?.status === "error" ? (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400">tap to retry</p>
+          ) : pct != null ? (
+            <p className={`text-sm font-extrabold tabular-nums ${isSel ? "text-[var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}>{pct}%</p>
+          ) : (
+            <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Accredited</p>
+          )}
+          {entry?.status !== "loading" && entry?.status !== "partial" && (
+            <p className="text-[10px] text-[var(--color-text-tertiary)]">{label}</p>
+          )}
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div className="space-y-1.5">
-      <p className="text-[11px] text-[var(--color-text-tertiary)] -mt-1 mb-1">Tap a hospital to see its plan & cost.</p>
-      {list.map((h, i) => {
-        const { pct, label } = matchInfo(h, i, status);
-        const isRec = h?.hospital_id === recommendedId;
-        const isSel = h?.hospital_id === selectedId;
-        const entry = cache?.[h?.hospital_id];
-        const hasCost = entry?.cost && entry.cost.status !== "unavailable";
-        const total = hasCost
-          ? range(entry.cost.total_usd_min, entry.cost.total_usd_max, fmtUsd)
-          : range(h?.est_usd_min, h?.est_usd_max, fmtUsd);
-        const totalLabel = (entry?.status === "ready") ? "Total " : hasCost ? "Treatment " : "From ";
-        return (
-          <button
-            type="button"
-            key={h?.hospital_id || i}
-            onClick={() => onSelect(h?.hospital_id)}
-            aria-pressed={isSel}
-            className={`w-full text-left flex items-start justify-between gap-3 rounded-lg p-2.5 transition-colors ${
-              isSel ? "bg-[var(--color-accent-subtle)] ring-2 ring-[var(--color-accent)]" : "hover:bg-[var(--color-surface-2)] ring-1 ring-transparent"
-            }`}
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-1.5 flex-wrap">
-                <span className="truncate">{h?.name || "Hospital"}</span>
-                {isRec && (
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-accent)] bg-[var(--color-accent-subtle)] rounded px-1 py-0.5">
-                    Recommended
-                  </span>
-                )}
-                {h?.international_desk && (
-                  <span className="text-[10px] font-medium text-green-600">• intl desk</span>
-                )}
-              </p>
-              <p className="text-xs text-[var(--color-text-secondary)]">
-                {[h?.city, h?.tier ? `Tier ${h.tier}` : null].filter(Boolean).join(" · ")}
-              </p>
-              {supportLang && <InterpreterLine has={hasTranslator(h, supportLang)} lang={supportLang} />}
-              {total && (
-                <p className="text-[11px] mt-0.5 text-[var(--color-text-secondary)] tabular-nums">
-                  {totalLabel}
-                  <span className="font-semibold text-[var(--color-text-primary)]">{total}</span>
-                  {!hasCost && entry?.status !== "loading" && <span className="text-[var(--color-text-tertiary)]"> est.</span>}
-                  {entry?.status === "partial" && <span className="text-[var(--color-accent)]"> +flights…</span>}
-                </p>
-              )}
-              {isSel && onBook && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); onBook(h); }}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onBook(h); } }}
-                  aria-disabled={isStreaming}
-                  className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-md px-2.5 py-1 transition-colors ${
-                    isStreaming
-                      ? "bg-[var(--color-surface-2)] text-[var(--color-text-tertiary)] cursor-not-allowed"
-                      : "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] cursor-pointer"
-                  }`}
-                >
-                  <IconCheck className="w-3 h-3" /> Book this hospital
-                </span>
-              )}
-            </div>
-            <div className="text-right flex-shrink-0">
-              {entry?.status === "loading" || entry?.status === "partial" ? (
-                <Spinner className="w-4 h-4 ml-auto" />
-              ) : entry?.status === "error" ? (
-                <p className="text-[10px] text-amber-600">tap to retry</p>
-              ) : pct != null ? (
-                <p className={`text-sm font-extrabold ${isSel ? "text-[var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}>{pct}%</p>
-              ) : (
-                <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Accredited</p>
-              )}
-              {entry?.status !== "loading" && entry?.status !== "partial" && (
-                <p className="text-[10px] text-[var(--color-text-tertiary)]">{label}</p>
-              )}
-            </div>
-          </button>
-        );
-      })}
+      <p className="text-[11px] text-[var(--color-text-tertiary)] -mt-1 mb-1">Tap a hospital to see its plan &amp; cost.</p>
+      {head.map(Row)}
+
+      <Reveal show={expanded && tail.length > 0} reduce={reduce}>
+        <div className="space-y-1.5">{tail.map((h, i) => Row(h, i + COLLAPSED))}</div>
+      </Reveal>
+
+      <MoreHint show={!expanded && tail.length > 0}>
+        {tail.length} more hospital{tail.length > 1 ? "s" : ""} — hover to compare
+      </MoreHint>
 
       {supportLang && (
         <div className="pt-2 border-t border-[var(--color-border-subtle)] flex items-center gap-1.5 text-xs">
@@ -627,7 +709,7 @@ function RetryNote({ onRetry }) {
       </p>
       <button
         type="button"
-        onClick={onRetry}
+        onClick={(e) => { e.stopPropagation(); onRetry(); }}
         className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
       >
         <IconArrow className="w-3.5 h-3.5" /> Try again
@@ -716,7 +798,7 @@ function CompareStrip({ list, cache, selectedId, recommendedId, onSelect }) {
 
 // --- Estimated cost --------------------------------------------------------
 
-function CostBody({ cost, procedureLabel, flightsPending }) {
+function CostBody({ cost, procedureLabel, flightsPending, expanded, reduce }) {
   if (cost?.status === "unavailable") {
     return (
       <Note tone="amber">
@@ -733,6 +815,17 @@ function CostBody({ cost, procedureLabel, flightsPending }) {
     return <p className="text-sm text-[var(--color-text-secondary)]">Cost details are in the summary below.</p>;
   }
 
+  const COLLAPSED = 3;
+  const head = items.slice(0, COLLAPSED);
+  const tail = items.slice(COLLAPSED);
+
+  const LineItem = (item, i) => (
+    <li key={`${item?.label ?? "item"}-${i}`} className="flex items-center justify-between py-1.5 text-sm">
+      <span className="text-[var(--color-text-secondary)]">{item?.label || "Line item"}</span>
+      <span className="text-[var(--color-text-primary)] font-medium tabular-nums">{fmtUsd(item?.usd) || "—"}</span>
+    </li>
+  );
+
   return (
     <div className="space-y-3">
       {procedureLabel && (
@@ -746,7 +839,21 @@ function CostBody({ cost, procedureLabel, flightsPending }) {
         </div>
       )}
 
-      {items.length > 0 && <CostBreakdown items={items} />}
+      {head.length > 0 && (
+        <ul className="divide-y divide-[var(--color-border-subtle)] border-t border-[var(--color-border-subtle)]">
+          {head.map(LineItem)}
+        </ul>
+      )}
+
+      <Reveal show={expanded} reduce={reduce}>
+        <div className="space-y-3">
+          {tail.length > 0 && (
+            <ul className="divide-y divide-[var(--color-border-subtle)]">{tail.map((it, i) => LineItem(it, i + COLLAPSED))}</ul>
+          )}
+          {cost?.scope_note && <p className="text-[11px] text-[var(--color-text-tertiary)]">{cost.scope_note}</p>}
+          {cost?.currency_note && <p className="text-[11px] text-[var(--color-text-tertiary)] italic">{cost.currency_note}</p>}
+        </div>
+      </Reveal>
 
       {flightsPending && (
         <p className="text-[11px] text-[var(--color-accent)] flex items-center gap-1.5">
@@ -754,51 +861,16 @@ function CostBody({ cost, procedureLabel, flightsPending }) {
         </p>
       )}
 
-      {cost?.scope_note && <p className="text-[11px] text-[var(--color-text-tertiary)]">{cost.scope_note}</p>}
-      {cost?.currency_note && <p className="text-[11px] text-[var(--color-text-tertiary)] italic">{cost.currency_note}</p>}
-    </div>
-  );
-}
-
-// Collapsible itemised breakdown — collapsed by default to reduce clutter.
-function CostBreakdown({ items }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
-        aria-expanded={open}
-      >
-        {open ? "Hide breakdown" : `Show breakdown (${items.length})`}
-        <IconChevron className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.ul
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="divide-y divide-[var(--color-border-subtle)] overflow-hidden"
-          >
-            {items.map((item, i) => (
-              <li key={`${item?.label ?? "item"}-${i}`} className="flex items-center justify-between py-1.5 text-sm">
-                <span className="text-[var(--color-text-secondary)]">{item?.label || "Line item"}</span>
-                <span className="text-[var(--color-text-primary)] font-medium tabular-nums">{fmtUsd(item?.usd) || "—"}</span>
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
+      <MoreHint show={!expanded && (tail.length > 0 || cost?.scope_note || cost?.currency_note)}>
+        {tail.length > 0 ? `${tail.length} more line item${tail.length > 1 ? "s" : ""} — hover for the full breakdown` : "hover for details"}
+      </MoreHint>
     </div>
   );
 }
 
 // --- Travel checklist ------------------------------------------------------
 
-function ChecklistBody({ docs }) {
+function ChecklistBody({ docs, expanded, reduce }) {
   const mandatory = Array.isArray(docs?.mandatory_docs) ? docs.mandatory_docs : [];
   const recommended = Array.isArray(docs?.recommended_docs) ? docs.recommended_docs : [];
   const isFallback = docs?.status === "fallback";
@@ -807,7 +879,7 @@ function ChecklistBody({ docs }) {
   const visaItem = docs?.visa_type
     ? `${docs.visa_type}${docs?.visa_required === false ? " (visa-free)" : ""}`
     : null;
-  const items = [visaItem, ...mandatory, ...recommended].filter(Boolean).slice(0, 9);
+  const items = [visaItem, ...mandatory, ...recommended].filter(Boolean);
 
   if (!items.length) {
     return (
@@ -817,50 +889,80 @@ function ChecklistBody({ docs }) {
     );
   }
 
+  const COLLAPSED = 4;
+  const head = items.slice(0, COLLAPSED);
+  const tail = items.slice(COLLAPSED);
+
+  const DocItem = (doc, i) => (
+    <div key={`${doc}-${i}`} className="flex items-start gap-2 text-sm text-[var(--color-text-primary)]">
+      <IconCheck className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+      <span>{typeof doc === "string" ? doc : String(doc)}</span>
+    </div>
+  );
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">
-        {items.map((doc, i) => (
-          <div key={`${doc}-${i}`} className="flex items-start gap-2 text-sm text-[var(--color-text-primary)]">
-            <IconCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-            <span>{typeof doc === "string" ? doc : String(doc)}</span>
-          </div>
-        ))}
+        {head.map(DocItem)}
       </div>
 
-      {Number.isFinite(docs?.processing_days) && (
-        <p className="text-[11px] text-[var(--color-text-tertiary)]">
-          Visa processing ≈ {docs.processing_days} days
-          {Number.isFinite(docs?.visa_duration_days) ? ` · valid ${docs.visa_duration_days} days` : ""}
-        </p>
-      )}
+      <Reveal show={expanded} reduce={reduce}>
+        <div className="space-y-3">
+          {tail.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">{tail.map((d, i) => DocItem(d, i + COLLAPSED))}</div>
+          )}
+          {(Number.isFinite(docs?.processing_days) || typeof docs?.processing_days === "string") && (
+            <p className="text-[11px] text-[var(--color-text-tertiary)]">
+              Visa processing ≈ {docs.processing_days}{Number.isFinite(docs?.processing_days) ? " days" : ""}
+              {Number.isFinite(docs?.visa_duration_days) ? ` · valid ${docs.visa_duration_days} days` : ""}
+            </p>
+          )}
+          {isFallback && (
+            <Note tone="amber">
+              General India checklist — confirm exact requirements with the destination embassy.
+            </Note>
+          )}
+        </div>
+      </Reveal>
 
-      {isFallback && (
-        <Note tone="amber">
-          General India checklist — confirm exact requirements with the destination embassy.
-        </Note>
-      )}
+      <MoreHint show={!expanded && tail.length > 0}>
+        {tail.length} more document{tail.length > 1 ? "s" : ""} — hover to see them all
+      </MoreHint>
     </div>
   );
 }
 
 // --- Timeline (derived from ward / ICU days) -------------------------------
 
-function TimelineBody({ cost, procedureLabel }) {
+function TimelineBody({ cost, procedureLabel, expanded, reduce }) {
   const steps = buildTimeline(cost, procedureLabel);
+  const COLLAPSED = 3;
+  const head = steps.slice(0, COLLAPSED);
+  const tail = steps.slice(COLLAPSED);
+
+  const Step = (s, i, isLast) => (
+    <li key={i} className="ml-4 pb-1">
+      <span className={`absolute -left-[7px] w-3 h-3 rounded-full border-2 border-[var(--color-surface)] ${isLast ? "bg-emerald-500" : "bg-[var(--color-accent)]"}`} />
+      <p className="text-xs font-bold text-[var(--color-accent)]">{s.day}</p>
+      <p className="text-xs text-[var(--color-text-secondary)]">{s.label}</p>
+    </li>
+  );
 
   return (
     <div>
       <ol className="relative border-l-2 border-[var(--color-border)] ml-1 space-y-3">
-        {steps.map((s, i) => (
-          <li key={i} className="ml-4">
-            <span className="absolute -left-[7px] w-3 h-3 rounded-full bg-[var(--color-accent)] border-2 border-white" />
-            <p className="text-xs font-bold text-[var(--color-accent)]">{s.day}</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">{s.label}</p>
-          </li>
-        ))}
+        {head.map((s, i) => Step(s, i, tail.length === 0 && i === head.length - 1))}
+        <Reveal show={expanded && tail.length > 0} reduce={reduce}>
+          <div className="space-y-3 pt-3">
+            {tail.map((s, i) => Step(s, i + COLLAPSED, i === tail.length - 1))}
+          </div>
+        </Reveal>
       </ol>
-      <p className="mt-3 text-[11px] text-[var(--color-text-tertiary)]">Indicative recovery timeline.</p>
+      {!expanded && tail.length > 0 ? (
+        <MoreHint show>{tail.length} more step{tail.length > 1 ? "s" : ""} — hover for the full recovery path</MoreHint>
+      ) : (
+        <p className="mt-3 text-[11px] text-[var(--color-text-tertiary)]">Indicative recovery timeline.</p>
+      )}
     </div>
   );
 }
@@ -959,7 +1061,7 @@ function BookingBanner({ booking }) {
 
 // --- Flights ---------------------------------------------------------------
 
-function FlightsBody({ flight, cost }) {
+function FlightsBody({ flight, cost, expanded, reduce }) {
   if (!flight) return <p className="text-sm text-[var(--color-text-secondary)]">Searching flights…</p>;
 
   // New shape exposes each direction (outbound + return) with per-leg detail.
@@ -978,7 +1080,7 @@ function FlightsBody({ flight, cost }) {
   return (
     <div className="space-y-2.5">
       {directions.map((dir, i) => (
-        <FlightDirection key={i} dir={dir} isReturn={roundTrip && i > 0} />
+        <FlightDirection key={i} dir={dir} isReturn={roundTrip && i > 0} expanded={expanded} reduce={reduce} />
       ))}
 
       {(fareUsd || fareNative) && (
@@ -998,8 +1100,9 @@ function FlightsBody({ flight, cost }) {
   );
 }
 
-// One direction (Outbound or Return) with each connecting leg + layovers.
-function FlightDirection({ dir, isReturn }) {
+// One direction (Outbound or Return). The summary (route + stops + duration) is
+// always visible; the per-leg itinerary + layovers reveal on hover.
+function FlightDirection({ dir, isReturn, expanded, reduce }) {
   const legs = Array.isArray(dir?.legs) && dir.legs.length ? dir.legs : null;
   const stops = Number.isFinite(dir?.stops)
     ? (dir.stops === 0 ? "non-stop" : `${dir.stops} stop${dir.stops > 1 ? "s" : ""}`)
@@ -1019,30 +1122,39 @@ function FlightDirection({ dir, isReturn }) {
           {dir?.from || "—"} → {dir?.to || "—"}
         </span>
       </div>
-      {meta && <div className="text-[10px] text-[var(--color-text-tertiary)] mb-2">{meta}</div>}
+      {meta && <div className="text-[10px] text-[var(--color-text-tertiary)] mb-1">{meta}</div>}
 
       {legs ? (
-        <div className="space-y-1.5">
-          {legs.map((leg, j) => (
-            <div key={j}>
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-[var(--color-text-primary)]">{leg.from} → {leg.to}</span>
-                <span className="text-[var(--color-text-tertiary)]">{leg.flight_number || ""}</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-[var(--color-text-secondary)]">
-                <span>{fmtDateTime(leg.departure)} → {fmtDateTime(leg.arrival)}</span>
-                {leg.airline && <span className="truncate ml-2 text-[var(--color-text-tertiary)]">{leg.airline}</span>}
-              </div>
-              {j < legs.length - 1 && (
-                <p className="text-[10px] text-amber-600 my-1">
-                  ↳ layover{fmtLayover(leg.arrival, legs[j + 1].departure)
-                    ? ` ${fmtLayover(leg.arrival, legs[j + 1].departure)}`
-                    : ""} in {leg.to}
-                </p>
-              )}
+        <>
+          <Reveal show={expanded} reduce={reduce}>
+            <div className="space-y-1.5 pt-1">
+              {legs.map((leg, j) => (
+                <div key={j}>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[var(--color-text-primary)]">{leg.from} → {leg.to}</span>
+                    <span className="text-[var(--color-text-tertiary)]">{leg.flight_number || ""}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-[var(--color-text-secondary)]">
+                    <span>{fmtDateTime(leg.departure)} → {fmtDateTime(leg.arrival)}</span>
+                    {leg.airline && <span className="truncate ml-2 text-[var(--color-text-tertiary)]">{leg.airline}</span>}
+                  </div>
+                  {j < legs.length - 1 && (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 my-1">
+                      ↳ layover{fmtLayover(leg.arrival, legs[j + 1].departure)
+                        ? ` ${fmtLayover(leg.arrival, legs[j + 1].departure)}`
+                        : ""} in {leg.to}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </Reveal>
+          {!expanded && (
+            <p className="text-[10px] font-medium text-[var(--color-accent)] opacity-80">
+              {legs.length} flight{legs.length > 1 ? "s" : ""} — hover for the itinerary
+            </p>
+          )}
+        </>
       ) : (
         <div className="flex items-center justify-between text-[11px] text-[var(--color-text-secondary)]">
           <span>Dep {fmtDateTime(dir?.departure)}</span>
