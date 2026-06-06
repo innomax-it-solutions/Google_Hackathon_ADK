@@ -53,6 +53,8 @@ desktop.ini
 ai_agents_challenge_designed_guide.pdf
 MedBridge_Tech_Architecture.docx
 MedBridge_Architecture*.html
+image.png
+*.screenshot.png
 
 # --- Root duplicate data files (canonical copies live in
 #     medbridge/backend/medbridge_agent/data/) ---

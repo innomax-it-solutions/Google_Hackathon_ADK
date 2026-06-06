@@ -1,25 +1,40 @@
 /**
- * JourneyPlanCard.jsx — the structured Journey Plan, rendered as a dashboard:
+ * JourneyPlanCard.jsx — the structured Journey Plan, rendered as an interactive dashboard:
  *
  *   ┌ PATIENT REQUEST ─────────────── From · Budget · Timeline ┐
  *   ├──────────────────────────┬──────────────────────────────┤
  *   │ Recommended hospitals      │ Estimated cost                 │
  *   ├──────────────────────────┼──────────────────────────────┤
- *   │ Travel checklist           │ Timeline                       │
+ *   │ Flights                    │ Travel checklist               │
  *   ├──────────────────────────┴──────────────────────────────┤
+ *   │ Timeline                                                  │
+ *   ├──────────────────────────────────────────────────────────┤
+ *   │ 💰 Final estimate                                          │
  *   │ 💡 AI recommendation summary                              │
  *   └────────────────────────────────────────────────────────┘
  *
- * Data rules (from the team brief):
+ * INTERACTION (this card is hover/focus-driven):
+ *  - Each panel is a self-contained interactive surface. Hovering (or keyboard-
+ *    focusing, or tapping) a panel LIFTS it, lights up its accent, and SMOOTHLY
+ *    REVEALS the content that is otherwise truncated — the full hospital list,
+ *    every cost line item, the full flight itinerary, all documents, all steps.
+ *  - While one panel is active its siblings gently recede (dim + shrink a hair)
+ *    so the focus reads clearly. Everything degrades gracefully with
+ *    prefers-reduced-motion and works without a mouse.
+ *
+ * Data rules (from the team brief) — UNCHANGED:
  *  - Read everything BY KEY NAME, never by array index.
  *  - Never render NaN/undefined; each panel self-guards and degrades to a note.
  *  - While loading, a panel with no data yet shows a pulse skeleton.
+ *
+ * Theming: this card is driven entirely by the app's design tokens
+ * (--color-surface, --color-accent, --color-text-*, …) so it follows light/dark
+ * automatically. Semantic colors (success green / warning amber) use dark: variants.
  *
  * Some panel details are NOT returned by the backend and are DERIVED client-side
  * for presentation (clearly approximate, never invented facts):
  *  - hospital "match %"  → from rank + within_budget + international_desk
  *  - recovery "Timeline" → from estimate_cost's ward_days / icu_days
- *  - "savings"           → shown only if a home-country quote is known (else hidden)
  *
  * Props (tool responses already unwrapped, or null until they arrive):
  *   intake   - { condition, origin_country, budget_usd, timeline_weeks }
@@ -31,10 +46,14 @@
  *   isLoading
  */
 
+import { useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { COUNTRIES } from "../../constants/countries";
 import { MEDBRIDGE_TRANSLATOR_LANGUAGES, languageName } from "../../constants/languages";
 
 const COUNTRY_NAME = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
+
+const EASE = [0.16, 1, 0.3, 1];
 
 export default function JourneyPlanCard({
   intake,
@@ -49,35 +68,55 @@ export default function JourneyPlanCard({
   const procedureLabel = labelize(hospital?.matched_procedure || cost?.procedure);
   const selectedFlight = pickFlight(flights, cost);
 
+  // Which panel is currently active (hovered / focused / tapped). null = none.
+  const [active, setActive] = useState(null);
+  const reduce = useReducedMotion();
+
+  // Shared props every Panel needs to coordinate the "one rises, the rest recede" effect.
+  const coord = (key) => ({
+    panelKey: key,
+    active: active === key,
+    dimmed: active !== null && active !== key,
+    onActivate: () => setActive(key),
+    onToggle: () => setActive((k) => (k === key ? null : key)),
+    onDeactivate: () => setActive((k) => (k === key ? null : k)),
+    reduce,
+  });
+
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE }}
+      className="bg-[var(--color-surface)] rounded-2xl shadow-card border border-[var(--color-border)] overflow-hidden"
+    >
       <PatientHeader intake={intake} isLoading={isLoading} />
 
-      <div className="bg-slate-50 p-4 sm:p-5 space-y-4">
+      <div className="bg-[var(--color-bg)] p-4 sm:p-5 space-y-4">
         {booking && <BookingBanner booking={booking} />}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Panel icon={<IconHospital />} title="Recommended hospitals" data={hospital} isLoading={isLoading}
-            render={() => <HospitalsBody hospital={hospital} cost={cost} supportLang={hospital?.requested_interpreter_language || intake?.support_language} />} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          <Panel {...coord("hospitals")} icon={<IconHospital />} title="Recommended hospitals" data={hospital} isLoading={isLoading}
+            render={(expanded) => <HospitalsBody hospital={hospital} cost={cost} expanded={expanded} reduce={reduce} supportLang={hospital?.requested_interpreter_language || intake?.support_language} />} />
 
-          <Panel icon={<IconCost />} title="Estimated cost" data={cost} isLoading={isLoading}
-            render={() => <CostBody cost={cost} procedureLabel={procedureLabel} />} />
+          <Panel {...coord("cost")} icon={<IconCost />} title="Estimated cost" data={cost} isLoading={isLoading}
+            render={(expanded) => <CostBody cost={cost} procedureLabel={procedureLabel} expanded={expanded} reduce={reduce} />} />
 
-          <Panel icon={<IconPlane />} title="Flights" data={selectedFlight} isLoading={isLoading}
-            render={() => <FlightsBody flight={selectedFlight} cost={cost} />} />
+          <Panel {...coord("flights")} icon={<IconPlane />} title="Flights" data={selectedFlight} isLoading={isLoading}
+            render={(expanded) => <FlightsBody flight={selectedFlight} cost={cost} expanded={expanded} reduce={reduce} />} />
 
-          <Panel icon={<IconChecklist />} title="Travel checklist" data={docs} isLoading={isLoading}
-            render={() => <ChecklistBody docs={docs} />} />
+          <Panel {...coord("checklist")} icon={<IconChecklist />} title="Travel checklist" data={docs} isLoading={isLoading}
+            render={(expanded) => <ChecklistBody docs={docs} expanded={expanded} reduce={reduce} />} />
 
-          <Panel icon={<IconTimeline />} title="Timeline" data={cost} isLoading={isLoading}
-            render={() => <TimelineBody cost={cost} procedureLabel={procedureLabel} />} />
+          <Panel {...coord("timeline")} icon={<IconTimeline />} title="Timeline" data={cost} isLoading={isLoading} className="lg:col-span-2"
+            render={(expanded) => <TimelineBody cost={cost} procedureLabel={procedureLabel} expanded={expanded} reduce={reduce} />} />
         </div>
 
         <FinalEstimate cost={cost} intake={intake} isLoading={isLoading} />
 
         <AISummary summary={summary} isLoading={isLoading} />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -105,28 +144,34 @@ function PatientHeader({ intake, isLoading }) {
     : "Your Journey Plan";
 
   return (
-    <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+    <div className="relative px-5 py-4 flex flex-wrap items-center justify-between gap-3 overflow-hidden">
+      {/* soft accent wash behind the header */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "linear-gradient(110deg, var(--color-accent-subtle), transparent 60%)" }}
+      />
+      <div className="relative flex items-center gap-3 min-w-0">
+        <div className="w-9 h-9 rounded-lg bg-[var(--color-accent)] flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_var(--color-accent-muted)]">
           <IconClipboard className="w-5 h-5 text-white" />
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-slate-400">
+            <span className="text-[11px] font-bold tracking-wider uppercase text-[var(--color-text-tertiary)]">
               Patient request
             </span>
             {isLoading && (
-              <span className="flex items-center gap-1 text-[11px] text-blue-500">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <span className="flex items-center gap-1 text-[11px] text-[var(--color-accent)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse" />
                 building…
               </span>
             )}
           </div>
-          <p className="text-base sm:text-lg font-bold text-slate-800 truncate">{title}</p>
+          <p className="text-base sm:text-lg font-bold text-[var(--color-text-primary)] truncate">{title}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-slate-500 flex-shrink-0">
+      <div className="relative flex items-center gap-4 text-xs text-[var(--color-text-secondary)] flex-shrink-0">
         {country && <Meta label="From">{country}</Meta>}
         {Number.isFinite(intake?.budget_usd) && (
           <Meta label="Budget">${intake.budget_usd.toLocaleString("en-US")}</Meta>
@@ -142,22 +187,27 @@ function PatientHeader({ intake, isLoading }) {
 function Meta({ label, children }) {
   return (
     <div className="text-right">
-      <p className="text-[10px] uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="text-sm font-semibold text-slate-700 whitespace-nowrap">{children}</p>
+      <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)]">{label}</p>
+      <p className="text-sm font-semibold text-[var(--color-text-primary)] whitespace-nowrap">{children}</p>
     </div>
   );
 }
 
-// --- Panel shell -----------------------------------------------------------
+// --- Panel shell (the interactive surface) ---------------------------------
 
-function Panel({ icon, title, data, isLoading, render }) {
+function Panel({
+  icon, title, data, isLoading, render, className = "",
+  active, dimmed, onActivate, onDeactivate, onToggle, reduce,
+}) {
   let body;
+  let hasData = false;
   if (data) {
+    hasData = true;
     try {
-      body = render();
+      body = render(active);
     } catch (err) {
       console.error(`[MedBridge] Failed to render "${title}":`, err);
-      body = <p className="text-sm text-slate-500">See the summary below for these details.</p>;
+      body = <p className="text-sm text-[var(--color-text-secondary)]">See the summary below for these details.</p>;
     }
   } else if (isLoading) {
     body = <PanelSkeleton />;
@@ -166,86 +216,167 @@ function Panel({ icon, title, data, isLoading, render }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center gap-1.5 mb-3 text-slate-400">
-        {icon}
-        <h3 className="text-[11px] font-bold tracking-wider uppercase">{title}</h3>
-      </div>
+    <motion.section
+      tabIndex={hasData ? 0 : -1}
+      onMouseEnter={hasData ? onActivate : undefined}
+      onMouseLeave={hasData ? onDeactivate : undefined}
+      onFocus={hasData ? onActivate : undefined}
+      onBlur={hasData ? (e) => { if (!e.currentTarget.contains(e.relatedTarget)) onDeactivate(); } : undefined}
+      onClick={hasData ? onToggle : undefined}
+      animate={reduce
+        ? { opacity: dimmed ? 0.7 : 1 }
+        : { scale: active ? 1.012 : dimmed ? 0.985 : 1, opacity: dimmed ? 0.62 : 1, y: active ? -2 : 0 }}
+      transition={{ duration: 0.28, ease: EASE }}
+      style={{ willChange: "transform" }}
+      className={`group relative rounded-xl border p-4 outline-none cursor-default
+        bg-[var(--color-surface)] transition-[box-shadow,border-color] duration-300
+        ${active
+          ? "border-[var(--color-accent)] shadow-card-hover z-10"
+          : "border-[var(--color-border)] shadow-surface hover:border-[var(--color-accent)]/40"}
+        ${className}`}
+    >
+      {/* accent top-bar that wipes in on activate */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-4 right-4 top-0 h-[2px] rounded-full origin-left transition-transform duration-300"
+        style={{
+          background: "linear-gradient(90deg, var(--color-accent), transparent)",
+          transform: active ? "scaleX(1)" : "scaleX(0)",
+        }}
+      />
+      <header className="flex items-center gap-2 mb-3">
+        <span className={`grid place-items-center w-7 h-7 rounded-lg transition-colors duration-300
+          ${active
+            ? "bg-[var(--color-accent)] text-white"
+            : "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"}`}>
+          {icon}
+        </span>
+        <h3 className="text-[11px] font-bold tracking-wider uppercase text-[var(--color-text-tertiary)]">{title}</h3>
+        <IconChevron
+          className={`ml-auto w-4 h-4 text-[var(--color-text-tertiary)] transition-transform duration-300
+            ${active ? "rotate-180 text-[var(--color-accent)]" : "opacity-0 group-hover:opacity-100"}`}
+        />
+      </header>
       {body}
-    </div>
+    </motion.section>
   );
 }
 
 function PanelSkeleton() {
   return (
     <div className="space-y-2.5 animate-pulse">
-      <div className="h-4 bg-slate-200 rounded w-1/2" />
-      <div className="h-3 bg-slate-100 rounded w-full" />
-      <div className="h-3 bg-slate-100 rounded w-5/6" />
-      <div className="h-3 bg-slate-100 rounded w-2/3" />
+      <div className="h-4 bg-[var(--color-surface-2)] rounded w-1/2" />
+      <div className="h-3 bg-[var(--color-surface-2)] rounded w-full" />
+      <div className="h-3 bg-[var(--color-surface-2)] rounded w-5/6" />
+      <div className="h-3 bg-[var(--color-surface-2)] rounded w-2/3" />
     </div>
+  );
+}
+
+// Smoothly reveals hidden content on activate; instant under reduced-motion.
+function Reveal({ show, reduce, children }) {
+  if (reduce) return show ? <div>{children}</div> : null;
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.div
+          key="reveal"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3, ease: EASE }}
+          className="overflow-hidden"
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// Small "there's more — hover to see it" affordance, hidden once expanded.
+function MoreHint({ show, children }) {
+  if (!show) return null;
+  return (
+    <p className="pt-2 mt-1 flex items-center gap-1 text-[11px] font-medium text-[var(--color-accent)] opacity-80 group-hover:opacity-100 transition-opacity">
+      <IconChevron className="w-3 h-3" />
+      {children}
+    </p>
   );
 }
 
 // --- Recommended hospitals -------------------------------------------------
 
-function HospitalsBody({ hospital, cost, supportLang }) {
-  const list = (Array.isArray(hospital?.hospitals) ? hospital.hospitals : []).slice(0, 3);
+function HospitalsBody({ hospital, cost, supportLang, expanded, reduce }) {
+  const list = Array.isArray(hospital?.hospitals) ? hospital.hospitals : [];
   const isGeneral = hospital?.status === "general_recommendation";
 
   if (!list.length) {
     const name = cost?.hospital_name;
-    if (!name) return <p className="text-sm text-slate-500">Matching you to the best hospital…</p>;
-    return <p className="text-sm font-semibold text-slate-800">{name}</p>;
+    if (!name) return <p className="text-sm text-[var(--color-text-secondary)]">Matching you to the best hospital…</p>;
+    return <p className="text-sm font-semibold text-[var(--color-text-primary)]">{name}</p>;
   }
+
+  // Show the top 2 always; reveal the rest on hover.
+  const COLLAPSED = 2;
+  const head = list.slice(0, COLLAPSED);
+  const tail = list.slice(COLLAPSED);
 
   // The costed hospital is the recommended one; otherwise the top-ranked match.
   const recommendedId = cost?.hospital_id || list[0]?.hospital_id;
 
+  const Row = (h, i) => {
+    const { pct, label } = matchInfo(h, i, hospital?.status);
+    const isRec = h?.hospital_id === recommendedId;
+    return (
+      <div
+        key={h?.hospital_id || i}
+        className={`flex items-start justify-between gap-3 ${i > 0 ? "pt-3 border-t border-[var(--color-border-subtle)]" : ""}`}
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-1.5">
+            <span className={expanded ? "" : "truncate"}>{h?.name || "Hospital"}</span>
+            {h?.international_desk && (
+              <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">• intl desk</span>
+            )}
+          </p>
+          <p className="text-xs text-[var(--color-text-secondary)]">
+            {[h?.city, h?.tier ? `Tier ${h.tier}` : null].filter(Boolean).join(" · ")}
+          </p>
+          {supportLang && <InterpreterLine has={hasTranslator(h, supportLang)} lang={supportLang} />}
+        </div>
+        <div className="text-right flex-shrink-0">
+          {pct != null ? (
+            <p className={`text-sm font-extrabold tabular-nums ${isRec ? "text-[var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}>
+              {pct}%
+            </p>
+          ) : (
+            <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Accredited</p>
+          )}
+          <p className="text-[10px] text-[var(--color-text-tertiary)]">{label}</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-3">
-      {list.map((h, i) => {
-        const { pct, label } = matchInfo(h, i, hospital?.status);
-        const isRec = h?.hospital_id === recommendedId;
-        return (
-          <div
-            key={h?.hospital_id || i}
-            className={`flex items-start justify-between gap-3 ${
-              i > 0 ? "pt-3 border-t border-slate-100" : ""
-            }`}
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <span className="truncate">{h?.name || "Hospital"}</span>
-                {h?.international_desk && (
-                  <span className="text-[10px] font-medium text-green-600">• intl desk</span>
-                )}
-              </p>
-              <p className="text-xs text-slate-500">
-                {[h?.city, h?.tier ? `Tier ${h.tier}` : null].filter(Boolean).join(" · ")}
-              </p>
-              {supportLang && <InterpreterLine has={hasTranslator(h, supportLang)} lang={supportLang} />}
-            </div>
-            <div className="text-right flex-shrink-0">
-              {pct != null ? (
-                <p className={`text-sm font-extrabold ${isRec ? "text-blue-600" : "text-slate-500"}`}>
-                  {pct}%
-                </p>
-              ) : (
-                <p className="text-xs font-semibold text-slate-500">Accredited</p>
-              )}
-              <p className="text-[10px] text-slate-400">{label}</p>
-            </div>
-          </div>
-        );
-      })}
+      {head.map(Row)}
+
+      <Reveal show={expanded && tail.length > 0} reduce={reduce}>
+        <div className="space-y-3 pt-3">{tail.map((h, i) => Row(h, i + COLLAPSED))}</div>
+      </Reveal>
+
+      <MoreHint show={!expanded && tail.length > 0}>
+        {tail.length} more hospital{tail.length > 1 ? "s" : ""} — hover to compare
+      </MoreHint>
 
       {supportLang && (
-        <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 text-xs">
+        <div className="pt-2 border-t border-[var(--color-border-subtle)] flex items-center gap-1.5 text-xs">
           {MEDBRIDGE_TRANSLATOR_LANGUAGES.includes(supportLang)
-            ? <IconCheck className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-            : <IconX className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
-          <span className={MEDBRIDGE_TRANSLATOR_LANGUAGES.includes(supportLang) ? "text-slate-600" : "text-slate-400"}>
+            ? <IconCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+            : <IconX className="w-3.5 h-3.5 text-[var(--color-text-tertiary)] flex-shrink-0" />}
+          <span className={MEDBRIDGE_TRANSLATOR_LANGUAGES.includes(supportLang) ? "text-[var(--color-text-secondary)]" : "text-[var(--color-text-tertiary)]"}>
             MedBridge interpreter ({languageName(supportLang)}) —{" "}
             {MEDBRIDGE_TRANSLATOR_LANGUAGES.includes(supportLang) ? "available" : "not available"}
           </span>
@@ -266,7 +397,7 @@ function HospitalsBody({ hospital, cost, supportLang }) {
 function InterpreterLine({ has, lang }) {
   const name = languageName(lang);
   return (
-    <p className={`text-[11px] mt-0.5 flex items-center gap-1 ${has ? "text-green-600" : "text-slate-400"}`}>
+    <p className={`text-[11px] mt-0.5 flex items-center gap-1 ${has ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--color-text-tertiary)]"}`}>
       {has ? <IconCheck className="w-3 h-3 flex-shrink-0" /> : <IconX className="w-3 h-3 flex-shrink-0" />}
       {has ? `${name} interpreter` : `No ${name} interpreter`}
     </p>
@@ -279,7 +410,7 @@ function hasTranslator(h, code) {
 
 // --- Estimated cost --------------------------------------------------------
 
-function CostBody({ cost, procedureLabel }) {
+function CostBody({ cost, procedureLabel, expanded, reduce }) {
   if (cost?.status === "unavailable") {
     return (
       <Note tone="amber">
@@ -293,42 +424,59 @@ function CostBody({ cost, procedureLabel }) {
   const inr = range(cost?.total_inr_min, cost?.total_inr_max, fmtInr);
 
   if (!usd && !items.length) {
-    return <p className="text-sm text-slate-500">Cost details are in the summary below.</p>;
+    return <p className="text-sm text-[var(--color-text-secondary)]">Cost details are in the summary below.</p>;
   }
+
+  const COLLAPSED = 3;
+  const head = items.slice(0, COLLAPSED);
+  const tail = items.slice(COLLAPSED);
+
+  const LineItem = (item, i) => (
+    <li key={`${item?.label ?? "item"}-${i}`} className="flex items-center justify-between py-1.5 text-sm">
+      <span className="text-[var(--color-text-secondary)]">{item?.label || "Line item"}</span>
+      <span className="text-[var(--color-text-primary)] font-medium tabular-nums">{fmtUsd(item?.usd) || "—"}</span>
+    </li>
+  );
 
   return (
     <div className="space-y-3">
       {procedureLabel && (
-        <p className="text-xs text-slate-500 -mt-1">{procedureLabel}</p>
+        <p className="text-xs text-[var(--color-text-secondary)] -mt-1">{procedureLabel}</p>
       )}
 
       {usd && (
         <div>
-          <p className="text-2xl font-extrabold text-slate-800 tabular-nums leading-tight">{usd}</p>
-          {inr && <p className="text-xs text-slate-400 tabular-nums">{inr}</p>}
+          <p className="text-2xl font-extrabold text-[var(--color-text-primary)] tabular-nums leading-tight">{usd}</p>
+          {inr && <p className="text-xs text-[var(--color-text-tertiary)] tabular-nums">{inr}</p>}
         </div>
       )}
 
-      {items.length > 0 && (
-        <ul className="divide-y divide-slate-100">
-          {items.map((item, i) => (
-            <li key={`${item?.label ?? "item"}-${i}`} className="flex items-center justify-between py-1.5 text-sm">
-              <span className="text-slate-600">{item?.label || "Line item"}</span>
-              <span className="text-slate-800 font-medium tabular-nums">{fmtUsd(item?.usd) || "—"}</span>
-            </li>
-          ))}
+      {head.length > 0 && (
+        <ul className="divide-y divide-[var(--color-border-subtle)] border-t border-[var(--color-border-subtle)]">
+          {head.map(LineItem)}
         </ul>
       )}
 
-      {cost?.scope_note && <p className="text-[11px] text-slate-400">{cost.scope_note}</p>}
-      {cost?.currency_note && <p className="text-[11px] text-slate-400 italic">{cost.currency_note}</p>}
+      <Reveal show={expanded} reduce={reduce}>
+        <div className="space-y-3">
+          {tail.length > 0 && (
+            <ul className="divide-y divide-[var(--color-border-subtle)]">{tail.map((it, i) => LineItem(it, i + COLLAPSED))}</ul>
+          )}
+          {cost?.scope_note && <p className="text-[11px] text-[var(--color-text-tertiary)]">{cost.scope_note}</p>}
+          {cost?.currency_note && <p className="text-[11px] text-[var(--color-text-tertiary)] italic">{cost.currency_note}</p>}
+        </div>
+      </Reveal>
+
+      <MoreHint show={!expanded && (tail.length > 0 || cost?.scope_note || cost?.currency_note)}>
+        {tail.length > 0 ? `${tail.length} more line item${tail.length > 1 ? "s" : ""} — hover for the full breakdown` : "hover for details"}
+      </MoreHint>
     </div>
   );
 }
 
 // --- Travel checklist ------------------------------------------------------
 
-function ChecklistBody({ docs }) {
+function ChecklistBody({ docs, expanded, reduce }) {
   const mandatory = Array.isArray(docs?.mandatory_docs) ? docs.mandatory_docs : [];
   const recommended = Array.isArray(docs?.recommended_docs) ? docs.recommended_docs : [];
   const isFallback = docs?.status === "fallback";
@@ -337,60 +485,92 @@ function ChecklistBody({ docs }) {
   const visaItem = docs?.visa_type
     ? `${docs.visa_type}${docs?.visa_required === false ? " (visa-free)" : ""}`
     : null;
-  const items = [visaItem, ...mandatory, ...recommended].filter(Boolean).slice(0, 9);
+  const items = [visaItem, ...mandatory, ...recommended].filter(Boolean);
 
   if (!items.length) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-[var(--color-text-secondary)]">
         Your coordinator will confirm the exact documents for your country.
       </p>
     );
   }
 
+  const COLLAPSED = 4;
+  const head = items.slice(0, COLLAPSED);
+  const tail = items.slice(COLLAPSED);
+
+  const DocItem = (doc, i) => (
+    <div key={`${doc}-${i}`} className="flex items-start gap-2 text-sm text-[var(--color-text-primary)]">
+      <IconCheck className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+      <span>{typeof doc === "string" ? doc : String(doc)}</span>
+    </div>
+  );
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">
-        {items.map((doc, i) => (
-          <div key={`${doc}-${i}`} className="flex items-start gap-2 text-sm text-slate-700">
-            <IconCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-            <span>{typeof doc === "string" ? doc : String(doc)}</span>
-          </div>
-        ))}
+        {head.map(DocItem)}
       </div>
 
-      {Number.isFinite(docs?.processing_days) && (
-        <p className="text-[11px] text-slate-400">
-          Visa processing ≈ {docs.processing_days} days
-          {Number.isFinite(docs?.visa_duration_days) ? ` · valid ${docs.visa_duration_days} days` : ""}
-        </p>
-      )}
+      <Reveal show={expanded} reduce={reduce}>
+        <div className="space-y-3">
+          {tail.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">{tail.map((d, i) => DocItem(d, i + COLLAPSED))}</div>
+          )}
 
-      {isFallback && (
-        <Note tone="amber">
-          General India checklist — confirm exact requirements with the destination embassy.
-        </Note>
-      )}
+          {Number.isFinite(docs?.processing_days) && (
+            <p className="text-[11px] text-[var(--color-text-tertiary)]">
+              Visa processing ≈ {docs.processing_days} days
+              {Number.isFinite(docs?.visa_duration_days) ? ` · valid ${docs.visa_duration_days} days` : ""}
+            </p>
+          )}
+
+          {isFallback && (
+            <Note tone="amber">
+              General India checklist — confirm exact requirements with the destination embassy.
+            </Note>
+          )}
+        </div>
+      </Reveal>
+
+      <MoreHint show={!expanded && tail.length > 0}>
+        {tail.length} more document{tail.length > 1 ? "s" : ""} — hover to see them all
+      </MoreHint>
     </div>
   );
 }
 
 // --- Timeline (derived from ward / ICU days) -------------------------------
 
-function TimelineBody({ cost, procedureLabel }) {
+function TimelineBody({ cost, procedureLabel, expanded, reduce }) {
   const steps = buildTimeline(cost, procedureLabel);
+  const COLLAPSED = 3;
+  const head = steps.slice(0, COLLAPSED);
+  const tail = steps.slice(COLLAPSED);
+
+  const Step = (s, i, isLast) => (
+    <li key={i} className="ml-4 pb-1">
+      <span className={`absolute -left-[7px] w-3 h-3 rounded-full border-2 border-[var(--color-surface)] ${isLast ? "bg-emerald-500" : "bg-[var(--color-accent)]"}`} />
+      <p className="text-xs font-bold text-[var(--color-accent)]">{s.day}</p>
+      <p className="text-xs text-[var(--color-text-secondary)]">{s.label}</p>
+    </li>
+  );
 
   return (
     <div>
-      <ol className="relative border-l-2 border-slate-200 ml-1 space-y-3">
-        {steps.map((s, i) => (
-          <li key={i} className="ml-4">
-            <span className="absolute -left-[7px] w-3 h-3 rounded-full bg-blue-500 border-2 border-white" />
-            <p className="text-xs font-bold text-blue-600">{s.day}</p>
-            <p className="text-xs text-slate-600">{s.label}</p>
-          </li>
-        ))}
+      <ol className="relative border-l-2 border-[var(--color-border)] ml-1 space-y-3">
+        {head.map((s, i) => Step(s, i, tail.length === 0 && i === head.length - 1))}
+        <Reveal show={expanded && tail.length > 0} reduce={reduce}>
+          <div className="space-y-3 pt-3">
+            {tail.map((s, i) => Step(s, i + COLLAPSED, i === tail.length - 1))}
+          </div>
+        </Reveal>
       </ol>
-      <p className="mt-3 text-[11px] text-slate-400">Indicative recovery timeline.</p>
+      {!expanded && tail.length > 0 ? (
+        <MoreHint show>{tail.length} more step{tail.length > 1 ? "s" : ""} — hover for the full recovery path</MoreHint>
+      ) : (
+        <p className="mt-3 text-[11px] text-[var(--color-text-tertiary)]">Indicative recovery timeline.</p>
+      )}
     </div>
   );
 }
@@ -427,27 +607,27 @@ function AISummary({ summary, isLoading }) {
   if (!text) {
     if (!isLoading) return null;
     return (
-      <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4">
+      <div className="bg-[var(--color-accent-subtle)] border border-[var(--color-accent-muted)] rounded-xl px-5 py-4">
         <SummaryHeader />
         <div className="mt-2 space-y-2 animate-pulse">
-          <div className="h-3 bg-blue-100 rounded w-full" />
-          <div className="h-3 bg-blue-100 rounded w-4/5" />
+          <div className="h-3 bg-[var(--color-accent-muted)] rounded w-full" />
+          <div className="h-3 bg-[var(--color-accent-muted)] rounded w-4/5" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4">
+    <div className="bg-[var(--color-accent-subtle)] border border-[var(--color-accent-muted)] rounded-xl px-5 py-4">
       <SummaryHeader />
-      <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{text}</p>
+      <p className="mt-1.5 text-sm text-[var(--color-text-secondary)] leading-relaxed">{text}</p>
     </div>
   );
 }
 
 function SummaryHeader() {
   return (
-    <div className="flex items-center gap-1.5 text-blue-600">
+    <div className="flex items-center gap-1.5 text-[var(--color-accent)]">
       <IconSparkle className="w-4 h-4" />
       <h3 className="text-[11px] font-bold tracking-wider uppercase">AI recommendation summary</h3>
     </div>
@@ -471,17 +651,17 @@ function extractSummary(summary) {
 function BookingBanner({ booking }) {
   if (booking?.status === "error") return null;
   return (
-    <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 flex items-start gap-3">
-      <IconCheck className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+    <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 rounded-xl px-5 py-4 flex items-start gap-3">
+      <IconCheck className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
       <div className="text-sm">
-        <p className="font-semibold text-green-800">Appointment request sent</p>
+        <p className="font-semibold text-emerald-800 dark:text-emerald-300">Appointment request sent</p>
         {booking?.reference && (
-          <p className="text-green-700">
+          <p className="text-emerald-700 dark:text-emerald-400">
             Reference <span className="font-mono font-semibold">{booking.reference}</span>
             {booking?.hospital_name ? ` · ${booking.hospital_name}` : ""}
           </p>
         )}
-        {booking?.message && <p className="text-green-600 mt-1">{booking.message}</p>}
+        {booking?.message && <p className="text-emerald-600 dark:text-emerald-400/90 mt-1">{booking.message}</p>}
       </div>
     </div>
   );
@@ -489,8 +669,8 @@ function BookingBanner({ booking }) {
 
 // --- Flights ---------------------------------------------------------------
 
-function FlightsBody({ flight, cost }) {
-  if (!flight) return <p className="text-sm text-slate-500">Searching flights…</p>;
+function FlightsBody({ flight, cost, expanded, reduce }) {
+  if (!flight) return <p className="text-sm text-[var(--color-text-secondary)]">Searching flights…</p>;
 
   // New shape exposes each direction (outbound + return) with per-leg detail.
   // Fall back to treating the flat shape as a single direction (one-way / old data).
@@ -508,18 +688,18 @@ function FlightsBody({ flight, cost }) {
   return (
     <div className="space-y-2.5">
       {directions.map((dir, i) => (
-        <FlightDirection key={i} dir={dir} isReturn={roundTrip && i > 0} />
+        <FlightDirection key={i} dir={dir} isReturn={roundTrip && i > 0} expanded={expanded} reduce={reduce} />
       ))}
 
       {(fareUsd || fareNative) && (
-        <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between">
-          <span className="text-[11px] uppercase tracking-wide text-slate-400">
+        <div className="pt-2 border-t border-[var(--color-border-subtle)] flex items-baseline justify-between">
+          <span className="text-[11px] uppercase tracking-wide text-[var(--color-text-tertiary)]">
             {roundTrip ? "Round-trip airfare" : "Airfare"}
           </span>
-          <span className="text-sm font-bold text-slate-800 tabular-nums">
+          <span className="text-sm font-bold text-[var(--color-text-primary)] tabular-nums">
             {fareUsd || fareNative}
             {fareUsd && fareNative && (
-              <span className="text-[11px] font-normal text-slate-400 ml-1">({fareNative})</span>
+              <span className="text-[11px] font-normal text-[var(--color-text-tertiary)] ml-1">({fareNative})</span>
             )}
           </span>
         </div>
@@ -528,8 +708,9 @@ function FlightsBody({ flight, cost }) {
   );
 }
 
-// One direction (Outbound or Return) with each connecting leg + layovers.
-function FlightDirection({ dir, isReturn }) {
+// One direction (Outbound or Return). The summary (route + stops + duration) is
+// always visible; the per-leg itinerary + layovers reveal on hover.
+function FlightDirection({ dir, isReturn, expanded, reduce }) {
   const legs = Array.isArray(dir?.legs) && dir.legs.length ? dir.legs : null;
   const stops = Number.isFinite(dir?.stops)
     ? (dir.stops === 0 ? "non-stop" : `${dir.stops} stop${dir.stops > 1 ? "s" : ""}`)
@@ -538,43 +719,52 @@ function FlightDirection({ dir, isReturn }) {
   const day = fmtDay(dir?.departure);
 
   return (
-    <div className="rounded-lg bg-slate-50 border border-slate-100 p-2.5">
+    <div className="rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)] p-2.5">
       <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mb-1.5">
-        <IconPlane className={`w-3.5 h-3.5 ${isReturn ? "text-slate-400" : "text-blue-500"}`} />
-        <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+        <IconPlane className={`w-3.5 h-3.5 ${isReturn ? "text-[var(--color-text-tertiary)]" : "text-[var(--color-accent)]"}`} />
+        <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">
           {dir?.label || (isReturn ? "Return" : "Outbound")}
         </span>
-        {day && <span className="text-[11px] text-slate-400">· {day}</span>}
-        <span className="text-xs font-bold text-slate-700 ml-auto">
+        {day && <span className="text-[11px] text-[var(--color-text-tertiary)]">· {day}</span>}
+        <span className="text-xs font-bold text-[var(--color-text-primary)] ml-auto">
           {dir?.from || "—"} → {dir?.to || "—"}
         </span>
       </div>
-      {meta && <div className="text-[10px] text-slate-400 mb-2">{meta}</div>}
+      {meta && <div className="text-[10px] text-[var(--color-text-tertiary)] mb-1">{meta}</div>}
 
       {legs ? (
-        <div className="space-y-1.5">
-          {legs.map((leg, j) => (
-            <div key={j}>
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-700">{leg.from} → {leg.to}</span>
-                <span className="text-slate-400">{leg.flight_number || ""}</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
-                <span>{fmtDateTime(leg.departure)} → {fmtDateTime(leg.arrival)}</span>
-                {leg.airline && <span className="truncate ml-2 text-slate-400">{leg.airline}</span>}
-              </div>
-              {j < legs.length - 1 && (
-                <p className="text-[10px] text-amber-600 my-1">
-                  ↳ layover{fmtLayover(leg.arrival, legs[j + 1].departure)
-                    ? ` ${fmtLayover(leg.arrival, legs[j + 1].departure)}`
-                    : ""} in {leg.to}
-                </p>
-              )}
+        <>
+          <Reveal show={expanded} reduce={reduce}>
+            <div className="space-y-1.5 pt-1">
+              {legs.map((leg, j) => (
+                <div key={j}>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[var(--color-text-primary)]">{leg.from} → {leg.to}</span>
+                    <span className="text-[var(--color-text-tertiary)]">{leg.flight_number || ""}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-[var(--color-text-secondary)]">
+                    <span>{fmtDateTime(leg.departure)} → {fmtDateTime(leg.arrival)}</span>
+                    {leg.airline && <span className="truncate ml-2 text-[var(--color-text-tertiary)]">{leg.airline}</span>}
+                  </div>
+                  {j < legs.length - 1 && (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 my-1">
+                      ↳ layover{fmtLayover(leg.arrival, legs[j + 1].departure)
+                        ? ` ${fmtLayover(leg.arrival, legs[j + 1].departure)}`
+                        : ""} in {leg.to}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </Reveal>
+          {!expanded && (
+            <p className="text-[10px] font-medium text-[var(--color-accent)] opacity-80">
+              {legs.length} flight{legs.length > 1 ? "s" : ""} — hover for the itinerary
+            </p>
+          )}
+        </>
       ) : (
-        <div className="flex items-center justify-between text-[11px] text-slate-500">
+        <div className="flex items-center justify-between text-[11px] text-[var(--color-text-secondary)]">
           <span>Dep {fmtDateTime(dir?.departure)}</span>
           <span>Arr {fmtDateTime(dir?.arrival)}</span>
         </div>
@@ -611,47 +801,51 @@ function FinalEstimate({ cost, intake, isLoading }) {
   const overBy = budget != null && Number.isFinite(totalMax) && totalMax > budget ? totalMax - budget : 0;
 
   return (
-    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl px-5 py-4 text-white shadow-md">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <IconWallet className="w-4 h-4" />
-          <h3 className="text-[11px] font-bold tracking-wider uppercase opacity-90">
-            Final estimate {includesFlights ? "· treatment + flights" : "· treatment"}
-          </h3>
-        </div>
-        {budget != null ? (
-          within ? (
-            <span className="text-[11px] font-semibold bg-emerald-400/25 border border-emerald-200/50 rounded-full px-2.5 py-1">
-              ✓ Within your ${budget.toLocaleString("en-US")} budget
-            </span>
+    <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl px-5 py-4 text-white shadow-[0_10px_30px_-8px_rgba(79,70,229,0.6)]">
+      {/* glossy highlight */}
+      <div aria-hidden className="pointer-events-none absolute -top-1/2 -right-1/4 w-2/3 h-[200%] bg-white/10 blur-2xl rounded-full" />
+      <div className="relative">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <IconWallet className="w-4 h-4" />
+            <h3 className="text-[11px] font-bold tracking-wider uppercase opacity-90">
+              Final estimate {includesFlights ? "· treatment + flights" : "· treatment"}
+            </h3>
+          </div>
+          {budget != null ? (
+            within ? (
+              <span className="text-[11px] font-semibold bg-emerald-400/25 border border-emerald-200/50 rounded-full px-2.5 py-1">
+                ✓ Within your ${budget.toLocaleString("en-US")} budget
+              </span>
+            ) : (
+              <span className="text-[11px] font-semibold bg-amber-400/25 border border-amber-200/50 rounded-full px-2.5 py-1">
+                ≈ ${Math.round(overBy).toLocaleString("en-US")} over your ${budget.toLocaleString("en-US")} budget
+              </span>
+            )
           ) : (
-            <span className="text-[11px] font-semibold bg-amber-400/25 border border-amber-200/50 rounded-full px-2.5 py-1">
-              ≈ ${Math.round(overBy).toLocaleString("en-US")} over your ${budget.toLocaleString("en-US")} budget
+            <span className="text-[11px] font-semibold bg-white/15 border border-white/30 rounded-full px-2.5 py-1">
+              Best-value plan
             </span>
-          )
-        ) : (
-          <span className="text-[11px] font-semibold bg-white/15 border border-white/30 rounded-full px-2.5 py-1">
-            Best-value plan
-          </span>
-        )}
-      </div>
-
-      <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums leading-tight">{totalUsd}</p>
-      {totalInr && <p className="text-xs opacity-80 tabular-nums">{totalInr}</p>}
-
-      {includesFlights && (
-        <div className="mt-3 pt-3 border-t border-white/20 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-          <span className="opacity-90">Treatment <b>{treatUsd || "—"}</b></span>
-          <span className="opacity-60">+</span>
-          <span className="opacity-90">Flights <b>{fmtUsd(flightUsd) || "—"}</b></span>
+          )}
         </div>
-      )}
 
-      <p className="mt-2 text-[11px] opacity-70">
-        {includesFlights
-          ? "Treatment package + selected flight. Accommodation estimated separately."
-          : "Treatment package only — flights and accommodation estimated separately."}
-      </p>
+        <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums leading-tight">{totalUsd}</p>
+        {totalInr && <p className="text-xs opacity-80 tabular-nums">{totalInr}</p>}
+
+        {includesFlights && (
+          <div className="mt-3 pt-3 border-t border-white/20 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            <span className="opacity-90">Treatment <b>{treatUsd || "—"}</b></span>
+            <span className="opacity-60">+</span>
+            <span className="opacity-90">Flights <b>{fmtUsd(flightUsd) || "—"}</b></span>
+          </div>
+        )}
+
+        <p className="mt-2 text-[11px] opacity-70">
+          {includesFlights
+            ? "Treatment package + selected flight. Accommodation estimated separately."
+            : "Treatment package only — flights and accommodation estimated separately."}
+        </p>
+      </div>
     </div>
   );
 }
@@ -707,8 +901,8 @@ function fmtLayover(arr, dep) {
 
 function Note({ children, tone = "blue" }) {
   const styles = {
-    blue: "bg-blue-50 border-blue-200 text-blue-700",
-    amber: "bg-amber-50 border-amber-200 text-amber-700",
+    blue: "bg-[var(--color-accent-subtle)] border-[var(--color-accent-muted)] text-[var(--color-accent)]",
+    amber: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/25 text-amber-700 dark:text-amber-300",
   }[tone];
   return <p className={`text-xs border rounded-lg px-3 py-2 ${styles}`}>{children}</p>;
 }
@@ -751,7 +945,7 @@ function countryLabel(code) {
   if (code === "GENERIC" || code === "OTHER") return "Other";
   return COUNTRY_NAME[code] || code;
 }
-// --- Inline icons (thin slate line icons to match the mockup) --------------
+// --- Inline icons (thin line icons to match the mockup) --------------------
 
 function IconClipboard({ className = "w-4 h-4" }) {
   return (
@@ -816,10 +1010,10 @@ function IconPlane({ className = "w-4 h-4" }) {
     </svg>
   );
 }
-function IconArrow({ className = "w-4 h-4" }) {
+function IconChevron({ className = "w-4 h-4" }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
     </svg>
   );
 }

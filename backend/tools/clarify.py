@@ -9,7 +9,11 @@ request — it performs no lookup.
 
 from __future__ import annotations
 
-_KNOWN = {"condition", "origin_country", "budget_usd", "timeline_weeks", "interpreter_language"}
+_KNOWN = {
+    "condition", "origin_country", "budget_usd", "timeline_weeks", "interpreter_language",
+    # Travel / flight intake — collected in the same popup so the flight step has what it needs.
+    "departure_city", "travel_date", "travellers",
+}
 
 
 def ask_patient_details(missing_fields: list[str]) -> dict:
@@ -23,8 +27,11 @@ def ask_patient_details(missing_fields: list[str]) -> dict:
         missing_fields: The details you still need, as a list of these exact field
             names: "condition" (the procedure/treatment), "origin_country" (their
             home country), "budget_usd" (their budget), "timeline_weeks" (how soon),
-            "interpreter_language" (a language interpreter they may want). Include
-            every field the patient has not already given you.
+            "interpreter_language" (a language interpreter they may want),
+            "departure_city" (the airport/city they fly from), "travel_date" (when
+            they want to travel), "travellers" (how many people are travelling).
+            Pass ONLY the fields the patient has NOT already given you — never include
+            a detail they already stated.
 
     Returns:
         A dict confirming the request was posted to the patient. The patient's answers

@@ -25,15 +25,12 @@ const COUNTRY_NAME = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
 
 // Always collect these via the popup (the agent tends to forget the optional ones).
 // Includes the travel/flight inputs so the whole journey is captured in one popup.
-const ALWAYS_ASK = [
-  "budget_usd", "timeline_weeks", "interpreter_language",
-  "departure_city", "travel_date", "travellers",
-];
-
-// Build the full, ordered question set: whatever the agent flagged as missing PLUS
-// the optional fields we always want, deduped and in canonical order.
+// Respect the agent's judgment: it has already parsed the patient's message and
+// passes ONLY the fields the patient hasn't provided yet. We just keep that list
+// deduped and in canonical question order — we do NOT re-add fields the patient
+// already answered (that was the old bug: a full prompt still got asked everything).
 function expandFields(agentFields) {
-  const set = new Set([...(agentFields || []), ...ALWAYS_ASK]);
+  const set = new Set(agentFields || []);
   return CLARIFY_ORDER.filter((f) => set.has(f));
 }
 
