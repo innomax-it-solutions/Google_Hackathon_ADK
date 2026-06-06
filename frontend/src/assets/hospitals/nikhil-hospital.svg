@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="96" viewBox="0 0 320 96" fill="none" role="img" aria-label="Nikhil Hospital">
+  <rect x="12" y="12" width="72" height="72" rx="18" fill="#0F766E"/>
+  <g fill="#ffffff" opacity="0.18">
+    <rect x="44" y="24" width="8" height="48" rx="3"/>
+    <rect x="24" y="44" width="48" height="8" rx="3"/>
+  </g>
+  <text x="48" y="48" text-anchor="middle" dominant-baseline="central"
+    font-family="'Segoe UI', Arial, sans-serif" font-weight="700"
+    font-size="36" fill="#ffffff">N</text>
+  <text font-family="'Segoe UI', Arial, sans-serif" font-weight="600"
+    font-size="19" fill="#0f172a"><tspan x="108" y="56">Nikhil Hospital</tspan></text>
+</svg>

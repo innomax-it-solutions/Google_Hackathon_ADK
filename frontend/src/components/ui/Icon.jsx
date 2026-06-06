@@ -1,0 +1,66 @@
+// Central icon map so data files can reference icons by string name.
+import {
+  ShieldCheck,
+  CircleDollarSign,
+  Clock,
+  ClipboardList,
+  Sparkles,
+  Calculator,
+  Route,
+  BrainCircuit,
+  Wallet,
+  FileCheck2,
+  LayoutGrid,
+  Map,
+  Network,
+  MonitorSmartphone,
+  Bot,
+  Wrench,
+  Hospital,
+  HeartPulse,
+  Stethoscope,
+  Star,
+  MapPin,
+  CheckCircle2,
+  ArrowRight,
+  Plane,
+  Building2,
+  Globe,
+  Users,
+} from "lucide-react";
+
+const ICONS = {
+  ShieldCheck,
+  CircleDollarSign,
+  Clock,
+  ClipboardList,
+  Sparkles,
+  Calculator,
+  Route,
+  BrainCircuit,
+  Wallet,
+  FileCheck2,
+  LayoutGrid,
+  Map,
+  Network,
+  MonitorSmartphone,
+  Bot,
+  Wrench,
+  Hospital,
+  HeartPulse,
+  Stethoscope,
+  Star,
+  MapPin,
+  CheckCircle2,
+  ArrowRight,
+  Plane,
+  Building2,
+  Globe,
+  Users,
+};
+
+/** Render a lucide icon by its string name. Falls back to Sparkles. */
+export default function Icon({ name, ...props }) {
+  const Cmp = ICONS[name] || Sparkles;
+  return <Cmp {...props} />;
+}
