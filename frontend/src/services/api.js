@@ -5,7 +5,7 @@
  * Swapping providers only requires changing services/ai/provider.js.
  */
 
-import { streamChat, streamIntake } from "./ai/provider";
+import { streamChat, streamIntake, estimateHospital } from "./ai/provider";
 
 export function sendChatMessage(sessionId, message, language, handlers) {
   return streamChat({ sessionId, message, language }, handlers);
@@ -14,4 +14,9 @@ export function sendChatMessage(sessionId, message, language, handlers) {
 /** Submit the structured intake form (Hospital Finder) → streamed Journey Plan. */
 export function submitIntakeForm(intake, handlers) {
   return streamIntake(intake, handlers);
+}
+
+/** Re-cost one hospital (plan + cost + flights) on demand for the interactive card. */
+export function fetchHospitalEstimate(params, signal) {
+  return estimateHospital(params, signal);
 }

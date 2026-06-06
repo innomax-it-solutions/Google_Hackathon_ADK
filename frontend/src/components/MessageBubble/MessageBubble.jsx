@@ -107,6 +107,7 @@ function AssistantMessage({ message, isLast }) {
                 docs={td.get_document_checklist}
                 booking={td.request_appointment}
                 flights={td.flight_search}
+                flightParams={message.flightParams}
                 summary={message.content}
                 isLoading={isStreaming}
               />

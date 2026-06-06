@@ -30,7 +30,10 @@ from google.genai import types
 from pydantic import BaseModel
 
 from .agent import root_agent
-from .contract import IntakeRequest
+from .city_airports import iata_for_city
+from .contract import IntakeRequest, hospital_by_id
+from .tools.cost_estimator import estimate_cost
+from .tools.flights import flight_search
 
 APP_NAME = "medbridge"
 
@@ -152,6 +155,79 @@ async def chat(req: ChatRequest):
         ),
         media_type="text/event-stream",
     )
+
+
+class EstimateHospitalRequest(BaseModel):
+    """Re-cost a single (non-recommended) hospital so the card can show its own
+    plan + cost. The frontend supplies the flight context derived from the
+    recommended hospital's already-run search (origin airport, dates, party size)."""
+
+    hospital_id: str
+    procedure: str = ""          # the matched_procedure slug from find_hospitals
+    origin_country: str = ""     # 2-letter ISO, for estimate_cost context
+    origin_airport: str = ""     # derived client-side from the seeded flight_search
+    departure_date: str = ""     # YYYY-MM-DD, derived client-side
+    return_date: str = ""        # optional; flight_search auto-defaults +21d if blank
+    adults: int = 1
+    children: int = 0
+    infants: int = 0
+    cabin_class: int = 2
+    skip_flights: bool = False    # phase 1: return treatment cost instantly, no flight search
+
+
+@app.post("/estimate_hospital")
+def estimate_hospital(req: EstimateHospitalRequest):
+    """Deterministic per-hospital estimate: search flights to the hospital's city,
+    fold the cheapest fare into estimate_cost, and return {cost, flights} in the
+    exact shapes JourneyPlanCard already consumes. No agent/LLM, only read-only
+    flight Search (never FareQuote/Book). Degrades to treatment-only on any flight
+    failure rather than erroring."""
+    hospital = hospital_by_id(req.hospital_id)
+    if not hospital:
+        return {
+            "cost": {"status": "unavailable", "message": f"No record for hospital '{req.hospital_id}'."},
+            "flights": None,
+        }
+
+    flights_payload = None
+    flight_cost_inr: float = 0
+    flight_result_index = ""
+    flight_trace_id = ""
+
+    dest = iata_for_city(hospital.get("city"))
+    can_search = bool(
+        not req.skip_flights
+        and dest and req.origin_airport and req.departure_date and req.procedure
+    )
+    if can_search:
+        fs = flight_search(
+            origin=req.origin_airport,
+            destination=dest,
+            departure_date=req.departure_date,
+            adults=max(1, req.adults),
+            children=req.children,
+            infants=req.infants,
+            cabin_class=req.cabin_class,
+            return_date=req.return_date,
+        )
+        flights_payload = fs
+        if fs.get("status") == "ok" and fs.get("results"):
+            cheapest = fs["results"][0]
+            fare = cheapest.get("published_fare")
+            if isinstance(fare, (int, float)) and fare > 0:
+                flight_cost_inr = fare
+                flight_result_index = cheapest.get("result_index") or ""
+                flight_trace_id = fs.get("trace_id") or ""
+
+    cost = estimate_cost(
+        hospital_id=req.hospital_id,
+        procedure=req.procedure,
+        origin_country=req.origin_country,
+        flight_cost_inr=flight_cost_inr,
+        flight_result_index=flight_result_index,
+        flight_trace_id=flight_trace_id,
+    )
+    return {"cost": cost, "flights": flights_payload}
 
 
 @app.get("/healthz")

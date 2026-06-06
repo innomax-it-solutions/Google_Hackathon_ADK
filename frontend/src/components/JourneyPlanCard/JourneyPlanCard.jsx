@@ -31,10 +31,18 @@
  *   isLoading
  */
 
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { COUNTRIES } from "../../constants/countries";
 import { MEDBRIDGE_TRANSLATOR_LANGUAGES, languageName } from "../../constants/languages";
+import { useChatContext } from "../../context/ChatContext";
+import { fetchHospitalEstimate } from "../../services/api";
 
 const COUNTRY_NAME = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
+
+// Bump this when changing the interactive card so you can confirm in the browser
+// console that the latest bundle is actually loaded (not a cached old one).
+console.info("[MedBridge] JourneyPlanCard build: interactive-v4 (split cost/flights fetch)");
 
 export default function JourneyPlanCard({
   intake,
@@ -43,11 +51,174 @@ export default function JourneyPlanCard({
   docs,
   booking,
   flights,
+  flightParams,
   summary,
   isLoading,
 }) {
-  const procedureLabel = labelize(hospital?.matched_procedure || cost?.procedure);
-  const selectedFlight = pickFlight(flights, cost);
+  const list = (Array.isArray(hospital?.hospitals) ? hospital.hospitals : []).slice(0, 3);
+  // The costed hospital is the recommended one; otherwise the top-ranked match.
+  const recommendedId = cost?.hospital_id || list[0]?.hospital_id || null;
+  const procedure = hospital?.matched_procedure || cost?.procedure || null;
+  const procedureLabel = labelize(procedure);
+
+  // Per-hospital plan + cost, fetched on demand. The recommended hospital is
+  // seeded from props; the others are re-costed via /estimate_hospital in two
+  // phases: treatment cost (instant) then live flights (~10s).
+  // cache: { [id]: { cost, flights, status: "loading"|"partial"|"ready"|"error" } }
+  const [selectedId, setSelectedId] = useState(recommendedId);
+  const [cache, setCache] = useState({});
+  const costReqRef = useRef(new Set());     // ids whose treatment cost was requested
+  const flightReqRef = useRef(new Set());   // ids whose live flights were requested
+
+  const { sendMessage, isStreaming } = useChatContext();
+
+  // Flight context (origin airport + departure date) is derived from the
+  // recommended hospital's search; it only exists once that search has returned.
+  const flightCtx = deriveFlightContext(flights, flightParams);
+  const canSearchFlights = !!(flightCtx.origin_airport && flightCtx.departure_date);
+
+  // Seed the cache with the recommended hospital's props as they arrive.
+  useEffect(() => {
+    if (recommendedId && cost) {
+      costReqRef.current.add(recommendedId);
+      flightReqRef.current.add(recommendedId);
+      setCache((prev) =>
+        prev[recommendedId]?.cost === cost && prev[recommendedId]?.flights === flights
+          ? prev
+          : { ...prev, [recommendedId]: { cost, flights, status: "ready" } }
+      );
+    }
+  }, [recommendedId, cost, flights]);
+
+  // Default the selection to the recommended hospital once it's known.
+  useEffect(() => {
+    setSelectedId((prev) => prev || recommendedId);
+  }, [recommendedId]);
+
+  // NOTE: deliberately do NOT abort in-flight fetches on unmount. Under React
+  // StrictMode (dev) the simulated unmount would abort the request while the
+  // dedupe ref still marks it "requested", so the remount never refetches and
+  // the panel spins forever. A stale setState on a truly-unmounted component is
+  // a harmless no-op in React 18; the 30s per-request timeout guards real hangs.
+
+  // Phase 1 — treatment cost + timeline, instant (needs no flight context).
+  const fetchCost = useCallback((id) => {
+    if (!id || !procedure || costReqRef.current.has(id)) return;
+    costReqRef.current.add(id);
+    setCache((prev) => (prev[id]?.cost ? prev : { ...prev, [id]: { status: "loading" } }));
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000);
+    fetchHospitalEstimate(
+      { hospital_id: id, procedure, origin_country: intake?.origin_country || "", skip_flights: true },
+      ctrl.signal,
+    )
+      .then(({ cost: c }) =>
+        setCache((prev) => {
+          const cur = prev[id] || {};
+          if (cur.status === "ready") return prev;            // flights already finalized
+          return { ...prev, [id]: { ...cur, cost: c, status: "partial" } };
+        }),
+      )
+      .catch((err) => {
+        console.error("[MedBridge] cost fetch failed:", err);
+        costReqRef.current.delete(id);                        // allow a retry
+        setCache((prev) => (prev[id]?.cost ? prev : { ...prev, [id]: { status: "error" } }));
+      })
+      .finally(() => clearTimeout(timer));
+  }, [procedure, intake]);
+
+  // Phase 2 — live flights folded into the total. Needs flight context, so it
+  // is gated on `canSearchFlights` and re-fires once that context arrives.
+  const fetchFlights = useCallback((id) => {
+    if (!id || !procedure || flightReqRef.current.has(id)) return;
+    const ctx = deriveFlightContext(flights, flightParams);
+    if (!ctx.origin_airport || !ctx.departure_date) return;   // no context yet -> wait
+    flightReqRef.current.add(id);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000);
+    fetchHospitalEstimate(
+      { hospital_id: id, procedure, origin_country: intake?.origin_country || "", ...ctx },
+      ctrl.signal,
+    )
+      .then(({ cost: c, flights: f }) =>
+        setCache((prev) => ({ ...prev, [id]: { cost: c, flights: f, status: "ready" } })),
+      )
+      .catch((err) => {
+        console.error("[MedBridge] flights fetch failed:", err);
+        flightReqRef.current.delete(id);                      // allow a retry
+        setCache((prev) => {                                  // keep treatment cost, finalize without flights
+          const cur = prev[id];
+          return cur?.cost ? { ...prev, [id]: { ...cur, status: "ready" } } : prev;
+        });
+      })
+      .finally(() => clearTimeout(timer));
+  }, [procedure, intake, flights, flightParams]);
+
+  const onSelect = useCallback((id) => {
+    if (!id) return;
+    setSelectedId(id);
+    fetchCost(id);
+    fetchFlights(id);
+  }, [fetchCost, fetchFlights]);
+
+  const others = useMemo(
+    () => list.filter((h) => h?.hospital_id && h.hospital_id !== recommendedId).map((h) => h.hospital_id),
+    [list, recommendedId],
+  );
+
+  // Prefetch treatment cost for the other hospitals immediately.
+  useEffect(() => {
+    if (!procedure) return;
+    others.forEach((id) => fetchCost(id));
+  }, [procedure, others, fetchCost]);
+
+  // Prefetch flights once the flight context is available (re-runs when it arrives).
+  useEffect(() => {
+    if (!procedure || !canSearchFlights) return;
+    others.forEach((id) => fetchFlights(id));
+  }, [procedure, canSearchFlights, others, fetchFlights]);
+
+  // If the plan has no live flights at all (agent never searched) and streaming
+  // has finished, finalize the cost-only hospitals so they stop "searching".
+  useEffect(() => {
+    if (isLoading || canSearchFlights) return;
+    setCache((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k of Object.keys(next)) {
+        if (next[k]?.status === "partial" && next[k]?.cost) {
+          next[k] = { ...next[k], status: "ready" };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [isLoading, canSearchFlights, cache]);
+
+  const onBook = useCallback((h) => {
+    if (!h || isStreaming) return;
+    sendMessage(`Please book my appointment and prepare the booking for ${h.name} in ${h.city}.`);
+  }, [sendMessage, isStreaming]);
+
+  // What the cost/timeline/flight panels render: the SELECTED hospital's data.
+  const sel = selectedId ? cache[selectedId] : null;
+  const selStatus = sel?.status;                          // loading | partial | ready | error
+  const isRecommendedSelected = selectedId === recommendedId;
+  // Cost (treatment, then treatment+flights) shows as soon as phase 1 lands.
+  const selCost = sel?.cost || (isRecommendedSelected ? cost : null);
+  const selFlights = selStatus === "ready" ? sel?.flights : (isRecommendedSelected ? flights : null);
+  const selectedFlight = pickFlight(selFlights, selCost);
+
+  const selCity = list.find((h) => h?.hospital_id === selectedId)?.city || "";
+  const selError = selStatus === "error";
+  const costFetching = selStatus === "loading" && !selCost;   // phase 1 (brief)
+  const flightsPending = selStatus === "loading" || selStatus === "partial"; // phases 1-2
+  const initialSkeleton = isLoading && !selCost && !selStatus; // before any tool data
+
+  // `data` for the swap panels: real data, or a sentinel while a phase is in
+  // flight / on error so the panel renders progress or a retry note (not null).
+  const costPanelData = selCost || (costFetching ? "loading" : selError ? "error" : null);
+  const flightPanelData = selectedFlight || (flightsPending ? "loading" : selError ? "error" : null);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
@@ -58,26 +229,69 @@ export default function JourneyPlanCard({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Panel icon={<IconHospital />} title="Recommended hospitals" data={hospital} isLoading={isLoading}
-            render={() => <HospitalsBody hospital={hospital} cost={cost} supportLang={hospital?.requested_interpreter_language || intake?.support_language} />} />
+            render={() => (
+              <HospitalsBody
+                list={list}
+                status={hospital?.status}
+                selectedId={selectedId}
+                recommendedId={recommendedId}
+                cache={cache}
+                onSelect={onSelect}
+                onBook={onBook}
+                isStreaming={isStreaming}
+                supportLang={hospital?.requested_interpreter_language || intake?.support_language}
+              />
+            )} />
 
-          <Panel icon={<IconCost />} title="Estimated cost" data={cost} isLoading={isLoading}
-            render={() => <CostBody cost={cost} procedureLabel={procedureLabel} />} />
+          <Panel icon={<IconCost />} title="Estimated cost" data={costPanelData} isLoading={initialSkeleton}
+            render={() => selError
+              ? <RetryNote onRetry={() => onSelect(selectedId)} />
+              : costFetching
+                ? <ProgressSteps steps={["Fetching treatment costs", "Building your plan"]} />
+                : <SwapIn k={selectedId}><CostBody cost={selCost} flightsPending={flightsPending} procedureLabel={procedureLabel} /></SwapIn>} />
 
-          <Panel icon={<IconPlane />} title="Flights" data={selectedFlight} isLoading={isLoading}
-            render={() => <FlightsBody flight={selectedFlight} cost={cost} />} />
+          <Panel icon={<IconPlane />} title="Flights" data={flightPanelData} isLoading={initialSkeleton}
+            render={() => selError
+              ? <RetryNote onRetry={() => onSelect(selectedId)} />
+              : flightsPending
+                ? <ProgressSteps steps={[`Searching live flights${selCity ? ` to ${selCity}` : ""}`, "Comparing fares", "Pricing your journey"]} />
+                : <SwapIn k={selectedId}><FlightsBody flight={selectedFlight} cost={selCost} /></SwapIn>} />
 
           <Panel icon={<IconChecklist />} title="Travel checklist" data={docs} isLoading={isLoading}
             render={() => <ChecklistBody docs={docs} />} />
 
-          <Panel icon={<IconTimeline />} title="Timeline" data={cost} isLoading={isLoading}
-            render={() => <TimelineBody cost={cost} procedureLabel={procedureLabel} />} />
+          <Panel icon={<IconTimeline />} title="Timeline" data={costPanelData} isLoading={initialSkeleton}
+            render={() => costFetching
+              ? <ProgressSteps steps={["Preparing recovery timeline"]} />
+              : <SwapIn k={selectedId}><TimelineBody cost={selCost} procedureLabel={procedureLabel} /></SwapIn>} />
         </div>
 
-        <FinalEstimate cost={cost} intake={intake} isLoading={isLoading} />
+        <CompareStrip list={list} cache={cache} selectedId={selectedId} recommendedId={recommendedId} onSelect={onSelect} />
+
+        <SwapIn k={selectedId}>
+          <FinalEstimate cost={selCost} intake={intake} isLoading={initialSkeleton} flightsPending={flightsPending} />
+        </SwapIn>
 
         <AISummary summary={summary} isLoading={isLoading} />
       </div>
     </div>
+  );
+}
+
+// Cross-fade + slide a panel body when the selected hospital changes.
+function SwapIn({ k, children }) {
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={k}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.18 }}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -92,6 +306,28 @@ function pickFlight(flights, cost) {
     if (match) return match;
   }
   return list[0];
+}
+
+// Travel context for re-costing another hospital: reuse the recommended search's
+// origin airport + departure date, plus the captured party size / cabin / return.
+function deriveFlightContext(flights, flightParams) {
+  const r0 = Array.isArray(flights?.results) ? flights.results[0] : null;
+  return {
+    origin_airport: r0?.from || flightParams?.origin || "",
+    departure_date: ymd(r0?.departure) || flightParams?.departure_date || "",
+    return_date:    flightParams?.return_date || "",
+    adults:         flightParams?.adults ?? 1,
+    children:       flightParams?.children ?? 0,
+    infants:        flightParams?.infants ?? 0,
+    cabin_class:    flightParams?.cabin_class ?? 2,
+  };
+}
+
+// "2026-06-25T05:55:00" -> "2026-06-25"
+function ymd(s) {
+  if (!s || typeof s !== "string") return "";
+  const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : "";
 }
 
 // --- Patient request header ------------------------------------------------
@@ -189,34 +425,46 @@ function PanelSkeleton() {
 
 // --- Recommended hospitals -------------------------------------------------
 
-function HospitalsBody({ hospital, cost, supportLang }) {
-  const list = (Array.isArray(hospital?.hospitals) ? hospital.hospitals : []).slice(0, 3);
-  const isGeneral = hospital?.status === "general_recommendation";
+function HospitalsBody({ list, status, selectedId, recommendedId, cache, onSelect, onBook, isStreaming, supportLang }) {
+  const isGeneral = status === "general_recommendation";
 
   if (!list.length) {
-    const name = cost?.hospital_name;
+    const name = cache?.[recommendedId]?.cost?.hospital_name;
     if (!name) return <p className="text-sm text-slate-500">Matching you to the best hospital…</p>;
     return <p className="text-sm font-semibold text-slate-800">{name}</p>;
   }
 
-  // The costed hospital is the recommended one; otherwise the top-ranked match.
-  const recommendedId = cost?.hospital_id || list[0]?.hospital_id;
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-1.5">
+      <p className="text-[11px] text-slate-400 -mt-1 mb-1">Tap a hospital to see its plan & cost.</p>
       {list.map((h, i) => {
-        const { pct, label } = matchInfo(h, i, hospital?.status);
+        const { pct, label } = matchInfo(h, i, status);
         const isRec = h?.hospital_id === recommendedId;
+        const isSel = h?.hospital_id === selectedId;
+        const entry = cache?.[h?.hospital_id];
+        const hasCost = entry?.cost && entry.cost.status !== "unavailable";
+        const total = hasCost
+          ? range(entry.cost.total_usd_min, entry.cost.total_usd_max, fmtUsd)
+          : range(h?.est_usd_min, h?.est_usd_max, fmtUsd);
+        const totalLabel = (entry?.status === "ready") ? "Total " : hasCost ? "Treatment " : "From ";
         return (
-          <div
+          <button
+            type="button"
             key={h?.hospital_id || i}
-            className={`flex items-start justify-between gap-3 ${
-              i > 0 ? "pt-3 border-t border-slate-100" : ""
+            onClick={() => onSelect(h?.hospital_id)}
+            aria-pressed={isSel}
+            className={`w-full text-left flex items-start justify-between gap-3 rounded-lg p-2.5 transition-colors ${
+              isSel ? "bg-blue-50 ring-2 ring-blue-500" : "hover:bg-slate-50 ring-1 ring-transparent"
             }`}
           >
             <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
                 <span className="truncate">{h?.name || "Hospital"}</span>
+                {isRec && (
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-blue-600 bg-blue-100 rounded px-1 py-0.5">
+                    Recommended
+                  </span>
+                )}
                 {h?.international_desk && (
                   <span className="text-[10px] font-medium text-green-600">• intl desk</span>
                 )}
@@ -225,18 +473,46 @@ function HospitalsBody({ hospital, cost, supportLang }) {
                 {[h?.city, h?.tier ? `Tier ${h.tier}` : null].filter(Boolean).join(" · ")}
               </p>
               {supportLang && <InterpreterLine has={hasTranslator(h, supportLang)} lang={supportLang} />}
+              {total && (
+                <p className="text-[11px] mt-0.5 text-slate-500 tabular-nums">
+                  {totalLabel}
+                  <span className="font-semibold text-slate-700">{total}</span>
+                  {!hasCost && entry?.status !== "loading" && <span className="text-slate-400"> est.</span>}
+                  {entry?.status === "partial" && <span className="text-blue-500"> +flights…</span>}
+                </p>
+              )}
+              {isSel && onBook && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); onBook(h); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onBook(h); } }}
+                  aria-disabled={isStreaming}
+                  className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold rounded-md px-2.5 py-1 transition-colors ${
+                    isStreaming
+                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                  }`}
+                >
+                  <IconCheck className="w-3 h-3" /> Book this hospital
+                </span>
+              )}
             </div>
             <div className="text-right flex-shrink-0">
-              {pct != null ? (
-                <p className={`text-sm font-extrabold ${isRec ? "text-blue-600" : "text-slate-500"}`}>
-                  {pct}%
-                </p>
+              {entry?.status === "loading" || entry?.status === "partial" ? (
+                <Spinner className="w-4 h-4 ml-auto" />
+              ) : entry?.status === "error" ? (
+                <p className="text-[10px] text-amber-600">tap to retry</p>
+              ) : pct != null ? (
+                <p className={`text-sm font-extrabold ${isSel ? "text-blue-600" : "text-slate-500"}`}>{pct}%</p>
               ) : (
                 <p className="text-xs font-semibold text-slate-500">Accredited</p>
               )}
-              <p className="text-[10px] text-slate-400">{label}</p>
+              {entry?.status !== "loading" && entry?.status !== "partial" && (
+                <p className="text-[10px] text-slate-400">{label}</p>
+              )}
             </div>
-          </div>
+          </button>
         );
       })}
 
@@ -277,9 +553,145 @@ function hasTranslator(h, code) {
   return Array.isArray(h?.translator_languages) && h.translator_languages.includes(code);
 }
 
+// Animated multi-step progress — cycles through the given stages with a spinner,
+// progress pips and animated dots so a ~10s wait feels alive, not frozen.
+function ProgressSteps({ steps }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (steps.length < 2) return;
+    const t = setInterval(() => setI((v) => Math.min(v + 1, steps.length - 1)), 2200);
+    return () => clearInterval(t);
+  }, [steps.length]);
+
+  return (
+    <div className="space-y-2.5 py-1">
+      <div className="flex items-center gap-2 text-sm font-medium text-blue-600">
+        <Spinner className="w-4 h-4" />
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={i}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2 }}
+          >
+            {steps[i]}
+            <AnimatedDots />
+          </motion.span>
+        </AnimatePresence>
+      </div>
+      {steps.length > 1 && (
+        <div className="flex gap-1">
+          {steps.map((_, k) => (
+            <span
+              key={k}
+              className={`h-1 rounded-full transition-all duration-300 ${k <= i ? "bg-blue-500 w-7" : "bg-slate-200 w-3"}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RetryNote({ onRetry }) {
+  return (
+    <div className="text-sm text-slate-500 space-y-1.5">
+      <p className="flex items-center gap-1.5 text-amber-600">
+        <IconX className="w-4 h-4 flex-shrink-0" /> Couldn't load this hospital's estimate.
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-600 hover:text-blue-700"
+      >
+        <IconArrow className="w-3.5 h-3.5" /> Try again
+      </button>
+    </div>
+  );
+}
+
+function AnimatedDots() {
+  return (
+    <span className="inline-flex">
+      <span className="animate-[pulse_1s_ease-in-out_infinite]">.</span>
+      <span className="animate-[pulse_1s_ease-in-out_0.2s_infinite]">.</span>
+      <span className="animate-[pulse_1s_ease-in-out_0.4s_infinite]">.</span>
+    </span>
+  );
+}
+
+function Spinner({ className = "w-4 h-4" }) {
+  return (
+    <svg className={`${className} animate-spin text-blue-500`} viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+    </svg>
+  );
+}
+
+// --- Compare all three (totals side by side) -------------------------------
+
+function CompareStrip({ list, cache, selectedId, recommendedId, onSelect }) {
+  if (!Array.isArray(list) || list.length < 2) return null;
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4">
+      <div className="flex items-center gap-1.5 mb-3 text-slate-400">
+        <IconCost />
+        <h3 className="text-[11px] font-bold tracking-wider uppercase">Compare options</h3>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        {list.map((h, i) => {
+          const id = h?.hospital_id;
+          const entry = cache?.[id];
+          const isSel = id === selectedId;
+          const ready = entry?.status === "ready";
+          const hasCost = entry?.cost && entry.cost.status !== "unavailable";
+          const total = hasCost
+            ? range(entry.cost.total_usd_min, entry.cost.total_usd_max, fmtUsd)
+            : range(h?.est_usd_min, h?.est_usd_max, fmtUsd);
+          const unavailable = entry?.cost?.status === "unavailable";
+          return (
+            <button
+              type="button"
+              key={id || i}
+              onClick={() => onSelect(id)}
+              aria-pressed={isSel}
+              className={`text-left rounded-lg p-3 transition-colors ${
+                isSel ? "bg-blue-50 ring-2 ring-blue-500" : "bg-slate-50 ring-1 ring-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              <p className="text-xs font-bold text-slate-800 truncate flex items-center gap-1">
+                {h?.name || "Hospital"}
+                {id === recommendedId && <span className="text-[8px] font-bold uppercase text-blue-600">★</span>}
+              </p>
+              <p className="text-[10px] text-slate-400 truncate mb-1.5">{h?.city}</p>
+              {entry?.status === "loading" ? (
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400"><Spinner className="w-3.5 h-3.5" /> pricing…</div>
+              ) : unavailable ? (
+                <p className="text-[11px] text-amber-600">No listed price</p>
+              ) : total ? (
+                <p className="text-sm font-extrabold text-slate-800 tabular-nums leading-tight">
+                  {total}
+                  {!hasCost && <span className="text-[10px] font-normal text-slate-400"> est.</span>}
+                  {entry?.status === "partial" && <span className="block text-[9px] font-normal text-blue-500">+ flights…</span>}
+                  {ready && entry.cost?.includes_flights && <span className="block text-[9px] font-normal text-slate-400">incl. flights</span>}
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-400">Accredited</p>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // --- Estimated cost --------------------------------------------------------
 
-function CostBody({ cost, procedureLabel }) {
+function CostBody({ cost, procedureLabel, flightsPending }) {
   if (cost?.status === "unavailable") {
     return (
       <Note tone="amber">
@@ -309,19 +721,52 @@ function CostBody({ cost, procedureLabel }) {
         </div>
       )}
 
-      {items.length > 0 && (
-        <ul className="divide-y divide-slate-100">
-          {items.map((item, i) => (
-            <li key={`${item?.label ?? "item"}-${i}`} className="flex items-center justify-between py-1.5 text-sm">
-              <span className="text-slate-600">{item?.label || "Line item"}</span>
-              <span className="text-slate-800 font-medium tabular-nums">{fmtUsd(item?.usd) || "—"}</span>
-            </li>
-          ))}
-        </ul>
+      {items.length > 0 && <CostBreakdown items={items} />}
+
+      {flightsPending && (
+        <p className="text-[11px] text-blue-600 flex items-center gap-1.5">
+          <Spinner className="w-3 h-3" /> Adding live flights to the total<AnimatedDots />
+        </p>
       )}
 
       {cost?.scope_note && <p className="text-[11px] text-slate-400">{cost.scope_note}</p>}
       {cost?.currency_note && <p className="text-[11px] text-slate-400 italic">{cost.currency_note}</p>}
+    </div>
+  );
+}
+
+// Collapsible itemised breakdown — collapsed by default to reduce clutter.
+function CostBreakdown({ items }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700"
+        aria-expanded={open}
+      >
+        {open ? "Hide breakdown" : `Show breakdown (${items.length})`}
+        <IconChevron className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.ul
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="divide-y divide-slate-100 overflow-hidden"
+          >
+            {items.map((item, i) => (
+              <li key={`${item?.label ?? "item"}-${i}`} className="flex items-center justify-between py-1.5 text-sm">
+                <span className="text-slate-600">{item?.label || "Line item"}</span>
+                <span className="text-slate-800 font-medium tabular-nums">{fmtUsd(item?.usd) || "—"}</span>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -585,7 +1030,7 @@ function FlightDirection({ dir, isReturn }) {
 
 // --- Final estimate (treatment + flights vs budget) ------------------------
 
-function FinalEstimate({ cost, intake, isLoading }) {
+function FinalEstimate({ cost, intake, isLoading, flightsPending }) {
   // Only meaningful once a priced estimate exists; the grid panels show the
   // loading skeletons in the meantime, so just stay hidden until then.
   if (!cost || cost.status === "unavailable") return null;
@@ -619,7 +1064,11 @@ function FinalEstimate({ cost, intake, isLoading }) {
             Final estimate {includesFlights ? "· treatment + flights" : "· treatment"}
           </h3>
         </div>
-        {budget != null ? (
+        {flightsPending ? (
+          <span className="text-[11px] font-semibold bg-white/15 border border-white/30 rounded-full px-2.5 py-1 flex items-center gap-1.5">
+            <Spinner className="w-3 h-3" /> adding live flights<AnimatedDots />
+          </span>
+        ) : budget != null ? (
           within ? (
             <span className="text-[11px] font-semibold bg-emerald-400/25 border border-emerald-200/50 rounded-full px-2.5 py-1">
               ✓ Within your ${budget.toLocaleString("en-US")} budget
@@ -827,6 +1276,13 @@ function IconWallet({ className = "w-4 h-4" }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h15a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 0a2 2 0 012-2h11M16 13h2" />
+    </svg>
+  );
+}
+function IconChevron({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
     </svg>
   );
 }

@@ -36,6 +36,27 @@ export function streamIntake(intake, handlers) {
   return openSseStream(`${BASE_URL}/run`, intake, handlers);
 }
 
+/**
+ * Re-cost a single hospital (plan + cost + flights) without the agent.
+ * @param {{hospital_id, procedure, origin_country, origin_airport, departure_date,
+ *   return_date?, adults?, children?, infants?, cabin_class?}} params
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{cost: object, flights: object|null}>}
+ */
+export async function estimateHospital(params, signal) {
+  const url = `${BASE_URL}/estimate_hospital`;
+  console.info("[MedBridge] → POST", url, { hospital: params?.hospital_id, skip_flights: !!params?.skip_flights });
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+    signal,
+  });
+  console.info("[MedBridge] ←", url, "status", res.status, res.headers.get("content-type"));
+  if (!res.ok) throw new Error(`estimate_hospital failed: ${res.status}`);
+  return res.json();
+}
+
 /** Check if the backend is reachable. */
 export async function healthCheck() {
   try {

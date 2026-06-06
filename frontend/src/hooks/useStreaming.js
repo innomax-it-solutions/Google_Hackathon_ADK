@@ -45,6 +45,20 @@ export function useStreaming({ sessionId, add, patch, patchFn, onClarify }) {
               timeline_weeks: args.timeline_weeks,
             };
           }
+          // Capture the flight search params (party size, dates, cabin) — the
+          // result doesn't echo these back, but the interactive card needs them
+          // to re-cost the other hospitals with the same travel context.
+          if (name === "flight_search" && args) {
+            next.flightParams = {
+              adults:         Number.isFinite(+args.adults) ? +args.adults : 1,
+              children:       +args.children || 0,
+              infants:        +args.infants || 0,
+              cabin_class:    +args.cabin_class || 2,
+              return_date:    args.return_date || "",
+              origin:         args.origin || "",
+              departure_date: args.departure_date || "",
+            };
+          }
           return next;
         });
       },
