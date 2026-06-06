@@ -24,13 +24,15 @@ export default function App() {
         }
       />
       <Route
-        path="/forms"
+        path="/form"
         element={
           <ProtectedRoute>
             <FormPage />
           </ProtectedRoute>
         }
       />
+      {/* alias so both /form and /forms work */}
+      <Route path="/forms" element={<Navigate to="/form" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
