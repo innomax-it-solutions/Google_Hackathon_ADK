@@ -122,10 +122,26 @@ def _with_language(text: str, language: str | None) -> str:
 @app.post("/run")
 async def run(intake: IntakeRequest):
     session_id = intake.session_id or uuid.uuid4().hex
+
+    # Core profile, then append only the optional travel details the patient gave —
+    # so the agent has departure city/date/party size for the flight step.
+    parts = [
+        f"condition: {intake.condition}",
+        f"origin_country: {intake.origin_country}",
+        f"budget_usd: {intake.budget_usd}",
+        f"timeline_weeks: {intake.timeline_weeks}",
+    ]
+    if intake.interpreter_language:
+        parts.append(f"interpreter_language: {intake.interpreter_language}")
+    if intake.departure_city:
+        parts.append(f"departure_city: {intake.departure_city}")
+    if intake.travel_date:
+        parts.append(f"travel_date: {intake.travel_date}")
+    if intake.travellers:
+        parts.append(f"travellers: {intake.travellers}")
+
     prompt = (
-        f"Patient profile — condition: {intake.condition}; "
-        f"origin_country: {intake.origin_country}; "
-        f"budget_usd: {intake.budget_usd}; timeline_weeks: {intake.timeline_weeks}. "
+        "Patient profile — " + "; ".join(parts) + ". "
         "Please plan my medical journey to India and show me the full Journey Plan."
     )
     return StreamingResponse(

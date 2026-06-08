@@ -96,9 +96,14 @@ def doc_rules() -> dict:
 # --- API request schema (FastAPI / frontend contract) ----------------------
 
 class IntakeRequest(BaseModel):
-    condition: str = Field(min_length=3, description="Condition or procedure in plain language.")
+    condition: str = Field(min_length=3, description="Condition or procedure in plain language (or a procedure slug).")
     origin_country: str = Field(min_length=2, max_length=2, description="2-letter ISO code, e.g. AE.")
     budget_usd: int = Field(gt=0)
     timeline_weeks: int = Field(ge=1, default=6)
+    # Optional travel details — when supplied, the agent can plan flights in the same pass.
+    interpreter_language: str | None = Field(default=None, description="ISO 639-1 code of an interpreter language the patient wants, e.g. ar, fr. Empty/None means none needed.")
+    departure_city: str | None = Field(default=None, description="City or airport the patient flies from, e.g. Dubai or DXB.")
+    travel_date: str | None = Field(default=None, description="Preferred outbound travel date (YYYY-MM-DD).")
+    travellers: int | None = Field(default=None, ge=1, description="Number of people travelling.")
     session_id: str | None = Field(default=None, description="Reuse to continue a conversation.")
     language: str | None = Field(default=None, description="Preferred reply language (ISO 639-1, e.g. ar, es).")
