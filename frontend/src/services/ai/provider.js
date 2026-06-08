@@ -29,7 +29,9 @@ export function streamChat({ sessionId, message, language }, handlers) {
 
 /**
  * Stream a structured intake form to the backend's /run endpoint.
- * @param {{condition, origin_country, budget_usd, timeline_weeks, language?, session_id?}} intake
+ * @param {{condition, origin_country, budget_usd, timeline_weeks,
+ *   interpreter_language?, departure_city?, travel_date?, travellers?,
+ *   language?, session_id?}} intake
  * @returns {{ abort: () => void }}
  */
 export function streamIntake(intake, handlers) {

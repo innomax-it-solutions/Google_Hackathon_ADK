@@ -14,13 +14,35 @@ import Header             from "../components/Header/Header";
 import JourneyPlanCard    from "../components/JourneyPlanCard/JourneyPlanCard";
 import CardErrorBoundary  from "../components/JourneyPlanCard/CardErrorBoundary";
 import { Button }         from "../components/ui/button";
+import SearchableSelect   from "../components/ui/SearchableSelect";
 import { COUNTRIES }      from "../constants/countries";
+import { TREATMENT_GROUPS } from "../constants/treatments";
+import { SUPPORT_LANGUAGES } from "../constants/languages";
 import { useLanguage }    from "../context/LanguageContext";
 import { submitIntakeForm } from "../services/api";
 import { cn }             from "../lib/utils";
 
-const INITIAL_FORM = { condition: "", origin_country: "", budget_usd: "", timeline_weeks: 6 };
-const EMPTY_PLAN = { hospital: null, cost: null, docs: null, booking: null };
+const INITIAL_FORM = {
+  condition: "",
+  origin_country: "",
+  budget_usd: "",
+  timeline_weeks: 6,
+  // Travel details — optional, but they let the agent plan flights in the same pass.
+  interpreter_language: "",
+  departure_city: "",
+  travel_date: "",
+  travellers: 1,
+};
+const EMPTY_PLAN = { hospital: null, cost: null, docs: null, booking: null, flights: null };
+
+// Today (YYYY-MM-DD) for the travel-date picker's min — no past dates.
+const TODAY = new Date().toISOString().slice(0, 10);
+
+// Interpreter dropdown options: "none" first, then the supported languages.
+const INTERPRETER_OPTIONS = [
+  { value: "", label: "No interpreter needed (English is fine)" },
+  ...SUPPORT_LANGUAGES.filter((l) => l.code !== "en").map((l) => ({ value: l.code, label: l.name })),
+];
 
 // Defensively unwrap an ADK tool_result payload to the underlying tool dict.
 function unwrap(response) {
@@ -57,6 +79,23 @@ function validateField(name, value) {
       if (n > 52) return "Please enter a timeline under 52 weeks.";
       return null;
     }
+    // --- Optional travel fields: only validated when the patient fills them in ---
+    case "departure_city": {
+      const v = (value || "").trim();
+      if (v && v.length < 2) return "Enter a city name or airport code.";
+      return null;
+    }
+    case "travel_date": {
+      if (value && value < TODAY) return "Travel date can't be in the past.";
+      return null;
+    }
+    case "travellers": {
+      if (value === "" || value === null || value === undefined) return null;
+      const n = Number(value);
+      if (isNaN(n) || n < 1) return "At least 1 traveller.";
+      if (n > 9) return "For 10+ travellers, please contact us directly.";
+      return null;
+    }
     default:
       return null;
   }
@@ -64,7 +103,10 @@ function validateField(name, value) {
 
 function validateAll(form) {
   const errors = {};
-  for (const name of ["condition", "origin_country", "budget_usd", "timeline_weeks"]) {
+  for (const name of [
+    "condition", "origin_country", "budget_usd", "timeline_weeks",
+    "departure_city", "travel_date", "travellers",
+  ]) {
     const err = validateField(name, form[name]);
     if (err) errors[name] = err;
   }
@@ -80,6 +122,7 @@ export default function FormPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [plan, setPlan]           = useState(EMPTY_PLAN);
+  const [flightParams, setFlightParams] = useState(null);  // party size / dates / cabin from flight_search args
   const [summary, setSummary]     = useState("");
   const [intake, setIntake]       = useState(null);
   const [hasResult, setHasResult] = useState(false);
@@ -97,6 +140,12 @@ export default function FormPage() {
     }
   }
 
+  // SearchableSelect emits the bare value (not an event) — set it and validate.
+  function setField(name, value) {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: validateField(name, value) || undefined }));
+  }
+
   function handleBlur(e) {
     const { name, value } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
@@ -105,7 +154,10 @@ export default function FormPage() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    setTouched({ condition: true, origin_country: true, budget_usd: true, timeline_weeks: true });
+    setTouched({
+      condition: true, origin_country: true, budget_usd: true, timeline_weeks: true,
+      departure_city: true, travel_date: true, travellers: true,
+    });
 
     const validationErrors = validateAll(form);
     if (Object.keys(validationErrors).length > 0) {
@@ -116,6 +168,8 @@ export default function FormPage() {
 
     abortRef.current?.abort();
 
+    // Send only the fields the patient actually provided; optional travel fields
+    // are omitted when blank so the backend keeps its sensible defaults.
     const payload = {
       condition: form.condition.trim(),
       origin_country: form.origin_country,
@@ -123,10 +177,15 @@ export default function FormPage() {
       timeline_weeks: Number(form.timeline_weeks),
       language,
     };
+    if (form.interpreter_language) payload.interpreter_language = form.interpreter_language;
+    if (form.departure_city.trim()) payload.departure_city = form.departure_city.trim();
+    if (form.travel_date) payload.travel_date = form.travel_date;
+    if (form.travellers) payload.travellers = Number(form.travellers);
 
     setErrors({});
     setIntake(payload);
     setPlan(EMPTY_PLAN);
+    setFlightParams(null);
     setSummary("");
     setError(null);
     setHasResult(false);
@@ -134,7 +193,29 @@ export default function FormPage() {
 
     abortRef.current = submitIntakeForm(payload, {
       onToken: (text) => setSummary((prev) => prev + text),
+      // Capture the flight_search args (party size, dates, cabin) the same way the
+      // chat does — the flight_search RESULT doesn't echo these back, but the card
+      // needs them to re-cost the other hospitals with the same travel context.
+      onToolCall: (name, args) => {
+        if (name === "flight_search" && args) {
+          setFlightParams({
+            adults:         Number.isFinite(+args.adults) ? +args.adults : 1,
+            children:       +args.children || 0,
+            infants:        +args.infants || 0,
+            cabin_class:    +args.cabin_class || 2,
+            return_date:    args.return_date || "",
+            origin:         args.origin || "",
+            departure_date: args.departure_date || "",
+          });
+        }
+      },
       onToolResult: (name, response) => {
+        // Flights are passed through RAW (the card reads flights.results), matching
+        // the chat path — don't unwrap them.
+        if (name === "flight_search") {
+          if (response) setPlan((prev) => ({ ...prev, flights: response }));
+          return;
+        }
         const data = unwrap(response);
         if (!data) return;
         setPlan((prev) => {
@@ -165,6 +246,7 @@ export default function FormPage() {
     setErrors({});
     setTouched({});
     setPlan(EMPTY_PLAN);
+    setFlightParams(null);
     setSummary("");
     setIntake(null);
     setHasResult(false);
@@ -196,13 +278,20 @@ export default function FormPage() {
             noValidate
             className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm p-5 sm:p-6"
           >
+            {/* Section: treatment & patient */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="condition" label="What treatment do you need?" error={errors.condition} className="sm:col-span-2">
-                <input
-                  id="condition" name="condition" type="text" maxLength={200}
-                  placeholder='e.g. "knee replacement", "heart bypass"'
-                  value={form.condition} onChange={handleChange} onBlur={handleBlur}
-                  disabled={isLoading} className={inputClass(errors.condition)}
+                <SearchableSelect
+                  id="condition" name="condition"
+                  value={form.condition}
+                  onChange={(v) => setField("condition", v)}
+                  onBlur={handleBlur}
+                  options={TREATMENT_GROUPS}
+                  placeholder="Select a treatment or procedure"
+                  searchPlaceholder="Search treatments — e.g. knee, bypass, cataract…"
+                  allowCustom
+                  disabled={isLoading}
+                  hasError={!!errors.condition}
                 />
               </Field>
 
@@ -219,6 +308,19 @@ export default function FormPage() {
                 </select>
               </Field>
 
+              <Field id="interpreter_language" label="Interpreter language (optional)" error={errors.interpreter_language}>
+                <SearchableSelect
+                  id="interpreter_language" name="interpreter_language"
+                  value={form.interpreter_language}
+                  onChange={(v) => setField("interpreter_language", v)}
+                  onBlur={handleBlur}
+                  options={INTERPRETER_OPTIONS}
+                  placeholder="No interpreter needed"
+                  searchPlaceholder="Search languages…"
+                  disabled={isLoading}
+                />
+              </Field>
+
               <Field id="budget_usd" label="Total budget (USD)" error={errors.budget_usd}>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)] text-sm">$</span>
@@ -231,16 +333,53 @@ export default function FormPage() {
                 </div>
               </Field>
 
-              <Field id="timeline_weeks" label="How soon? (weeks)" error={errors.timeline_weeks} className="sm:col-span-2">
+              <Field id="timeline_weeks" label="How soon? (weeks)" error={errors.timeline_weeks}>
                 <input
                   id="timeline_weeks" name="timeline_weeks" type="number" min="1" max="52"
                   value={form.timeline_weeks} onChange={handleChange} onBlur={handleBlur}
-                  disabled={isLoading} className={cn(inputClass(errors.timeline_weeks), "w-32")}
+                  disabled={isLoading} className={inputClass(errors.timeline_weeks)}
                 />
               </Field>
             </div>
 
-            <div className="flex items-center gap-3 mt-5">
+            {/* Section: travel details */}
+            <div className="mt-6 mb-3 flex items-center gap-3">
+              <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                Travel details
+              </span>
+              <span className="text-[12px] text-[var(--color-text-tertiary)]">(optional — helps us price flights too)</span>
+              <span className="flex-1 h-px bg-[var(--color-border)]" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field id="departure_city" label="Departure city / airport" error={errors.departure_city}>
+                <input
+                  id="departure_city" name="departure_city" type="text" maxLength={60}
+                  placeholder="e.g. Dubai or DXB"
+                  value={form.departure_city} onChange={handleChange} onBlur={handleBlur}
+                  disabled={isLoading} className={inputClass(errors.departure_city)}
+                />
+              </Field>
+
+              <Field id="travel_date" label="Preferred travel date" error={errors.travel_date}>
+                <input
+                  id="travel_date" name="travel_date" type="date" min={TODAY}
+                  value={form.travel_date} onChange={handleChange} onBlur={handleBlur}
+                  disabled={isLoading} className={inputClass(errors.travel_date)}
+                />
+              </Field>
+
+              <Field id="travellers" label="Number of travellers" error={errors.travellers}>
+                <input
+                  id="travellers" name="travellers" type="number" min="1" max="9"
+                  placeholder="e.g. 1"
+                  value={form.travellers} onChange={handleChange} onBlur={handleBlur}
+                  disabled={isLoading} className={inputClass(errors.travellers)}
+                />
+              </Field>
+            </div>
+
+            <div className="flex items-center gap-3 mt-6">
               <Button type="submit" variant="gradient" size="lg" disabled={isLoading} className="flex-1">
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2"><Spinner /> Planning your journey…</span>
@@ -272,6 +411,8 @@ export default function FormPage() {
                     cost={plan.cost}
                     docs={plan.docs}
                     booking={plan.booking}
+                    flights={plan.flights}
+                    flightParams={flightParams}
                     summary={summary}
                     isLoading={isLoading}
                   />
