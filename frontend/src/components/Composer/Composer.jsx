@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useChatContext } from "../../context/ChatContext";
 import { useToast }       from "../../context/ToastContext";
 import { useLanguage }    from "../../context/LanguageContext";
+import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { Button }         from "../ui/button";
 import { Tooltip }        from "../ui/tooltip";
 import {
@@ -38,7 +39,7 @@ const PROMPT_LIBRARY = [
 export default function Composer() {
   const { sendMessage, stopStream, isStreaming } = useChatContext();
   const { toast }                                = useToast();
-  const { t }                                    = useLanguage();
+  const { t, language }                          = useLanguage();
 
   const [text,     setText]     = useState("");
   const [files,    setFiles]    = useState([]);
@@ -46,6 +47,47 @@ export default function Composer() {
   const [focused,  setFocused]  = useState(false);
   const textareaRef  = useRef(null);
   const fileInputRef = useRef(null);
+  // Text already in the box when dictation starts — interim results render on
+  // top of this so the live preview never clobbers what the user had typed.
+  const voiceBaseRef = useRef("");
+
+  const { supported: voiceSupported, listening, start: startVoice, stop: stopVoice } =
+    useSpeechRecognition({
+      lang: language,
+      onInterim: (interim) => {
+        const base = voiceBaseRef.current;
+        const merged = base ? `${base} ${interim}` : interim;
+        setText(merged);
+        requestAnimationFrame(() => grow(textareaRef.current));
+      },
+      onFinal: (phrase) => {
+        const base = voiceBaseRef.current;
+        const merged = base ? `${base} ${phrase}` : phrase;
+        voiceBaseRef.current = merged;
+        setText(merged);
+        requestAnimationFrame(() => grow(textareaRef.current));
+      },
+      onError: (code) => {
+        if (code === "no-speech" || code === "aborted") return;
+        const denied = code === "not-allowed" || code === "service-not-allowed";
+        toast({
+          title: denied ? "Microphone access denied" : "Voice input unavailable",
+          description: denied
+            ? "Allow microphone access in your browser to dictate messages."
+            : "Couldn't capture audio. Please try again or type your message.",
+          variant: "error",
+        });
+      },
+    });
+
+  function toggleVoice() {
+    if (listening) {
+      stopVoice();
+      return;
+    }
+    voiceBaseRef.current = text.trim();
+    startVoice();
+  }
 
   function grow(el) {
     if (!el) return;
@@ -68,6 +110,7 @@ export default function Composer() {
   function submit() {
     const t = text.trim();
     if (!t || isStreaming) return;
+    if (listening) stopVoice();
     sendMessage(t, files.map(f => ({ name: f.name, type: f.type, size: f.size })));
     setText("");
     setFiles([]);
@@ -203,9 +246,26 @@ export default function Composer() {
                 onChange={e => addFiles(e.target.files)}
               />
 
-              {/* Voice (placeholder) */}
-              <Tooltip content="Voice input (coming soon)" side="top">
-                <Button variant="ghost" size="icon" disabled>
+              {/* Voice input */}
+              <Tooltip
+                content={
+                  !voiceSupported
+                    ? "Voice input not supported in this browser"
+                    : listening
+                    ? "Stop recording"
+                    : "Voice input"
+                }
+                side="top"
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleVoice}
+                  disabled={!voiceSupported || isStreaming}
+                  aria-pressed={listening}
+                  aria-label={listening ? "Stop voice input" : "Start voice input"}
+                  className={listening ? "text-red-500 animate-pulse" : ""}
+                >
                   <MicIcon className="w-[18px] h-[18px]" />
                 </Button>
               </Tooltip>
