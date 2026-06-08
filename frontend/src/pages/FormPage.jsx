@@ -33,7 +33,7 @@ const INITIAL_FORM = {
   travel_date: "",
   travellers: 1,
 };
-const EMPTY_PLAN = { hospital: null, cost: null, docs: null, booking: null };
+const EMPTY_PLAN = { hospital: null, cost: null, docs: null, booking: null, flights: null };
 
 // Today (YYYY-MM-DD) for the travel-date picker's min — no past dates.
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -122,6 +122,7 @@ export default function FormPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [plan, setPlan]           = useState(EMPTY_PLAN);
+  const [flightParams, setFlightParams] = useState(null);  // party size / dates / cabin from flight_search args
   const [summary, setSummary]     = useState("");
   const [intake, setIntake]       = useState(null);
   const [hasResult, setHasResult] = useState(false);
@@ -184,6 +185,7 @@ export default function FormPage() {
     setErrors({});
     setIntake(payload);
     setPlan(EMPTY_PLAN);
+    setFlightParams(null);
     setSummary("");
     setError(null);
     setHasResult(false);
@@ -191,7 +193,29 @@ export default function FormPage() {
 
     abortRef.current = submitIntakeForm(payload, {
       onToken: (text) => setSummary((prev) => prev + text),
+      // Capture the flight_search args (party size, dates, cabin) the same way the
+      // chat does — the flight_search RESULT doesn't echo these back, but the card
+      // needs them to re-cost the other hospitals with the same travel context.
+      onToolCall: (name, args) => {
+        if (name === "flight_search" && args) {
+          setFlightParams({
+            adults:         Number.isFinite(+args.adults) ? +args.adults : 1,
+            children:       +args.children || 0,
+            infants:        +args.infants || 0,
+            cabin_class:    +args.cabin_class || 2,
+            return_date:    args.return_date || "",
+            origin:         args.origin || "",
+            departure_date: args.departure_date || "",
+          });
+        }
+      },
       onToolResult: (name, response) => {
+        // Flights are passed through RAW (the card reads flights.results), matching
+        // the chat path — don't unwrap them.
+        if (name === "flight_search") {
+          if (response) setPlan((prev) => ({ ...prev, flights: response }));
+          return;
+        }
         const data = unwrap(response);
         if (!data) return;
         setPlan((prev) => {
@@ -222,6 +246,7 @@ export default function FormPage() {
     setErrors({});
     setTouched({});
     setPlan(EMPTY_PLAN);
+    setFlightParams(null);
     setSummary("");
     setIntake(null);
     setHasResult(false);
@@ -386,6 +411,8 @@ export default function FormPage() {
                     cost={plan.cost}
                     docs={plan.docs}
                     booking={plan.booking}
+                    flights={plan.flights}
+                    flightParams={flightParams}
                     summary={summary}
                     isLoading={isLoading}
                   />
