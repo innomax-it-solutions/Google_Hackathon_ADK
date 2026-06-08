@@ -230,6 +230,44 @@ export default function JourneyPlanCard({
   const costPanelData = selCost || (costFetching ? "loading" : selError ? "error" : null);
   const flightPanelData = selectedFlight || (flightsPending ? "loading" : selError ? "error" : null);
 
+  // Export the CURRENTLY SELECTED hospital's plan (what the user is viewing) to PDF.
+  const selectedHospital =
+    list.find((h) => h?.hospital_id === selectedId) ||
+    (selCost?.hospital_name ? { name: selCost.hospital_name, city: selCost.hospital_city } : null);
+  const canDownload = !initialSkeleton && (list.length > 0 || !!selCost);
+
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const handleDownloadPdf = useCallback(async () => {
+    setPdfBusy(true);
+    try {
+      // Lazy-load jspdf only on demand so it (and its heavy transitive deps) stays
+      // out of the initial bundle.
+      const { downloadJourneyPlanPdf } = await import("../../services/pdf/journeyPlanPdf");
+      downloadJourneyPlanPdf({
+        intake,
+        procedureLabel,
+        selectedHospital,
+        isRecommended: selectedId === recommendedId,
+        hospitalStatus: hospital?.status,
+        supportLang: hospital?.requested_interpreter_language || intake?.support_language,
+        cost: selCost,
+        flight: selectedFlight,
+        flights: selFlights,
+        docs,
+        booking,
+        summary,
+        cache,
+        hospitalsList: list,
+        recommendedId,
+      });
+    } catch (err) {
+      console.error("[MedBridge] PDF export failed:", err);
+    } finally {
+      setPdfBusy(false);
+    }
+  }, [intake, procedureLabel, selectedHospital, selectedId, recommendedId, hospital,
+      selCost, selectedFlight, selFlights, docs, booking, summary, cache, list]);
+
   return (
     <motion.div
       initial={reduce ? false : { opacity: 0, y: 10 }}
@@ -290,6 +328,22 @@ export default function JourneyPlanCard({
         </SwapIn>
 
         <AISummary summary={summary} isLoading={isLoading} />
+
+        {canDownload && (
+          <div className="flex items-center justify-end pt-1">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleDownloadPdf(); }}
+              disabled={pdfBusy}
+              title="Download this Journey Plan as a PDF"
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-lg px-3 py-1.5 border border-[var(--color-border)] text-[var(--color-text-secondary)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {pdfBusy
+                ? <><Spinner className="w-3.5 h-3.5" /> Preparing…</>
+                : <><IconDownload className="w-3.5 h-3.5" /> Download PDF</>}
+            </button>
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -1420,6 +1474,13 @@ function IconChevron({ className = "w-4 h-4" }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+function IconDownload({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
     </svg>
   );
 }
