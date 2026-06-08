@@ -1,12 +1,14 @@
 """FastAPI server exposing the autonomous MedBridge agent over SSE.
 
-POST /run     - structured intake (frontend form) -> streamed Journey Plan
-POST /chat    - free-text message on an existing session (multi-turn follow-ups)
-GET  /healthz - liveness probe for Cloud Run
+POST /run            - structured intake (frontend form) -> streamed Journey Plan
+POST /chat           - free-text message on an existing session (multi-turn)
+WS   /ws/transcribe  - live voice dictation -> streamed transcript + language
+GET  /healthz        - liveness probe for Cloud Run
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from datetime import date as _date
@@ -21,7 +23,7 @@ _env_file = Path(__file__).resolve().parent / ".env"
 load_dotenv(_env_file, override=True)
 
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from google.adk.runners import Runner
@@ -34,6 +36,7 @@ from .city_airports import iata_for_city
 from .contract import IntakeRequest, hospital_by_id
 from .tools.cost_estimator import estimate_cost
 from .tools.flights import flight_search
+from .transcribe_stream import stream_transcribe
 
 APP_NAME = "medbridge"
 
@@ -171,6 +174,52 @@ async def chat(req: ChatRequest):
         ),
         media_type="text/event-stream",
     )
+
+
+@app.websocket("/ws/transcribe")
+async def ws_transcribe(websocket: WebSocket):
+    """Live voice dictation: browser streams 16 kHz mono PCM in, we stream back
+    {type: interim|final, text, language} transcript events from Cloud STT v2.
+
+    The client sends binary audio frames and a final "stop" text frame. STT
+    detects the spoken language (Chirp) and we relay it so the composer can
+    switch the agent's reply language. See transcribe_stream.stream_transcribe.
+    """
+    await websocket.accept()
+    audio_queue: asyncio.Queue = asyncio.Queue()
+
+    async def pump_audio():
+        """Feed inbound audio frames to the queue; `None` signals end-of-audio."""
+        try:
+            while True:
+                message = await websocket.receive()
+                if message["type"] == "websocket.disconnect":
+                    break
+                if message.get("bytes") is not None:
+                    await audio_queue.put(message["bytes"])
+                elif message.get("text") == "stop":
+                    break
+        finally:
+            await audio_queue.put(None)
+
+    pump_task = asyncio.create_task(pump_audio())
+    try:
+        async for event in stream_transcribe(audio_queue):
+            await websocket.send_json(event)
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:  # surface STT/credential errors instead of a silent close
+        try:
+            await websocket.send_json({"type": "error", "message": str(exc)})
+        except Exception:
+            pass
+    finally:
+        await audio_queue.put(None)  # unblock the request generator if still waiting
+        pump_task.cancel()
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
 
 class EstimateHospitalRequest(BaseModel):

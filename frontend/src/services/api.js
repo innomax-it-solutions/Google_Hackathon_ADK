@@ -7,6 +7,9 @@
 
 import { streamChat, streamIntake, estimateHospital } from "./ai/provider";
 
+/** WebSocket URL for live voice transcription. */
+export { transcribeSocketUrl } from "./ai/provider";
+
 export function sendChatMessage(sessionId, message, language, handlers) {
   return streamChat({ sessionId, message, language }, handlers);
 }

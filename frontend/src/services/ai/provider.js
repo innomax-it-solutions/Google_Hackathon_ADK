@@ -56,6 +56,18 @@ export async function estimateHospital(params, signal) {
   return res.json();
 }
 
+/**
+ * WebSocket URL for live voice transcription (POST audio frames, receive
+ * transcript events). Derives ws/wss from VITE_API_URL, or falls back to the
+ * current origin in dev (Vite proxies /ws/transcribe → the backend).
+ * @returns {string}
+ */
+export function transcribeSocketUrl() {
+  if (BASE_URL) return `${BASE_URL.replace(/^http/, "ws")}/ws/transcribe`;
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${window.location.host}/ws/transcribe`;
+}
+
 /** Check if the backend is reachable. */
 export async function healthCheck() {
   try {

@@ -25,6 +25,12 @@ export default defineConfig({
         target: process.env.VITE_API_URL || "http://localhost:8000",
         changeOrigin: true,
       },
+      // Live voice dictation — WebSocket, so ws:true to tunnel the upgrade.
+      "/ws/transcribe": {
+        target: process.env.VITE_API_URL || "http://localhost:8000",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 });
