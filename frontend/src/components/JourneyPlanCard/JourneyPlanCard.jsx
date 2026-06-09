@@ -38,7 +38,7 @@ import { MEDBRIDGE_TRANSLATOR_LANGUAGES, languageName } from "../../constants/la
 import { useChatContext } from "../../context/ChatContext";
 import { useWishlist, wishlistKey } from "../../context/WishlistContext";
 import { useToast } from "../../context/ToastContext";
-import { fetchHospitalEstimate } from "../../services/api";
+import { fetchHospitalEstimate, getCachedHospitalEstimate } from "../../services/api";
 
 const COUNTRY_NAME = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
 const EASE = [0.16, 1, 0.3, 1];
@@ -65,7 +65,10 @@ export default function JourneyPlanCard({
   // phases: treatment cost (instant) then live flights (~10s).
   // cache: { [id]: { cost, flights, status: "loading"|"partial"|"ready"|"error" } }
   const [selectedId, setSelectedId] = useState(recommendedId);
-  const [cache, setCache] = useState({});
+  // Seed from props (recommended) + the session estimate cache (others), so a
+  // remount after navigation/refresh shows cached plans instantly with no refetch.
+  const [cache, setCache] = useState(() =>
+    buildInitialCache({ list, recommendedId, procedure, intake, propCost: cost, propFlights: flights, flightParams }));
   const costReqRef = useRef(new Set());     // ids whose treatment cost was requested
   const flightReqRef = useRef(new Set());   // ids whose live flights were requested
 
@@ -437,6 +440,36 @@ function pickFlight(flights, cost) {
     if (match) return match;
   }
   return list[0];
+}
+
+// Initial per-hospital cache for a fresh mount: the recommended hospital from
+// props, plus any OTHER hospital whose estimate is already in the session cache
+// (from a previous view this session). This is what stops a nav-away/refresh from
+// re-fetching everything — cached hospitals start "ready", never re-spinner.
+function buildInitialCache({ list, recommendedId, procedure, intake, propCost, propFlights, flightParams }) {
+  const init = {};
+  if (recommendedId && propCost) {
+    init[recommendedId] = { cost: propCost, flights: propFlights, status: "ready" };
+  }
+  if (!procedure || !Array.isArray(list)) return init;
+  const ctx = deriveFlightContext(propFlights, flightParams);
+  const canFlights = !!(ctx.origin_airport && ctx.departure_date);
+  const origin = intake?.origin_country || "";
+  for (const h of list) {
+    const id = h?.hospital_id;
+    if (!id || init[id]) continue;
+    // Prefer the flights-included estimate; fall back to the treatment-only one.
+    const withFlights = canFlights
+      ? getCachedHospitalEstimate({ hospital_id: id, procedure, origin_country: origin, ...ctx })
+      : null;
+    if (withFlights) {
+      init[id] = { cost: withFlights.cost, flights: withFlights.flights, status: "ready" };
+      continue;
+    }
+    const treatmentOnly = getCachedHospitalEstimate({ hospital_id: id, procedure, origin_country: origin, skip_flights: true });
+    if (treatmentOnly) init[id] = { cost: treatmentOnly.cost, status: "partial" };
+  }
+  return init;
 }
 
 // Travel context for re-costing another hospital: reuse the recommended search's
