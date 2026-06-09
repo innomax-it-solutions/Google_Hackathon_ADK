@@ -128,13 +128,13 @@ export default function Header() {
         {/* Actions */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
 
-          {/* Hospital finder form — blue CTA (or "Chat" link when on the form page) */}
-          {onFormPage ? (
+          {/* Hospital finder form — blue CTA (or "Chat" link when away from chat) */}
+          {(onFormPage || onWishlistPage) ? (
             <Tooltip content="Back to chat" side="bottom">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/chat")}
                 className="gap-1.5 text-[var(--color-text-tertiary)]"
               >
                 <ChatIcon className="w-3.5 h-3.5" />
