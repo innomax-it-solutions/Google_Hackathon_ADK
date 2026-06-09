@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useChatContext } from "../../context/ChatContext";
 import { useToast }       from "../../context/ToastContext";
 import { useLanguage }    from "../../context/LanguageContext";
-import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
+import { useVoiceDictation } from "../../hooks/useVoiceDictation";
 import { Button }         from "../ui/button";
 import { Tooltip }        from "../ui/tooltip";
 import {
@@ -39,7 +39,7 @@ const PROMPT_LIBRARY = [
 export default function Composer() {
   const { sendMessage, stopStream, isStreaming } = useChatContext();
   const { toast }                                = useToast();
-  const { t, language }                          = useLanguage();
+  const { t }                                    = useLanguage();
 
   const [text,     setText]     = useState("");
   const [files,    setFiles]    = useState([]);
@@ -47,41 +47,48 @@ export default function Composer() {
   const [focused,  setFocused]  = useState(false);
   const textareaRef  = useRef(null);
   const fileInputRef = useRef(null);
-  // Text already in the box when dictation starts — interim results render on
-  // top of this so the live preview never clobbers what the user had typed.
+  // Committed text (what the user typed + already-finalized phrases). Live
+  // interim results render on top of this so the preview never clobbers it.
   const voiceBaseRef = useRef("");
 
-  const { supported: voiceSupported, listening, start: startVoice, stop: stopVoice } =
-    useSpeechRecognition({
-      lang: language,
-      onInterim: (interim) => {
-        const base = voiceBaseRef.current;
-        const merged = base ? `${base} ${interim}` : interim;
-        setText(merged);
-        requestAnimationFrame(() => grow(textareaRef.current));
-      },
-      onFinal: (phrase) => {
-        const base = voiceBaseRef.current;
-        const merged = base ? `${base} ${phrase}` : phrase;
-        voiceBaseRef.current = merged;
-        setText(merged);
-        requestAnimationFrame(() => grow(textareaRef.current));
-      },
-      onError: (code) => {
-        if (code === "no-speech" || code === "aborted") return;
-        const denied = code === "not-allowed" || code === "service-not-allowed";
-        toast({
-          title: denied ? "Microphone access denied" : "Voice input unavailable",
-          description: denied
-            ? "Allow microphone access in your browser to dictate messages."
-            : "Couldn't capture audio. Please try again or type your message.",
-          variant: "error",
-        });
-      },
-    });
+  const {
+    supported: voiceSupported,
+    recording,
+    transcribing,
+    start: startVoice,
+    stop: stopVoice,
+  } = useVoiceDictation({
+    onInterim: (interim) => {
+      const base = voiceBaseRef.current;
+      setText(base ? `${base} ${interim}` : interim);
+      requestAnimationFrame(() => grow(textareaRef.current));
+    },
+    onResult: (phrase) => {
+      // Append the finalized phrase to the box. We deliberately do NOT change
+      // the app's reply language here: the transcript is already in the spoken
+      // language, and the agent mirrors the user's language by default (see
+      // backend _with_language). Forcing a global language was persisting to
+      // localStorage and made every later message reply in that language.
+      const base = voiceBaseRef.current;
+      const merged = base ? `${base} ${phrase}` : phrase;
+      voiceBaseRef.current = merged;
+      setText(merged);
+      requestAnimationFrame(() => grow(textareaRef.current));
+    },
+    onError: (code) => {
+      const denied = code === "not-allowed";
+      toast({
+        title: denied ? "Microphone access denied" : "Voice input unavailable",
+        description: denied
+          ? "Allow microphone access in your browser to dictate messages."
+          : "Couldn't capture audio. Please try again or type your message.",
+        variant: "error",
+      });
+    },
+  });
 
   function toggleVoice() {
-    if (listening) {
+    if (recording) {
       stopVoice();
       return;
     }
@@ -110,7 +117,7 @@ export default function Composer() {
   function submit() {
     const t = text.trim();
     if (!t || isStreaming) return;
-    if (listening) stopVoice();
+    if (recording) stopVoice();
     sendMessage(t, files.map(f => ({ name: f.name, type: f.type, size: f.size })));
     setText("");
     setFiles([]);
@@ -251,9 +258,11 @@ export default function Composer() {
                 content={
                   !voiceSupported
                     ? "Voice input not supported in this browser"
-                    : listening
+                    : transcribing
+                    ? "Transcribing…"
+                    : recording
                     ? "Stop recording"
-                    : "Voice input"
+                    : "Voice input — speak any language"
                 }
                 side="top"
               >
@@ -261,12 +270,22 @@ export default function Composer() {
                   variant="ghost"
                   size="icon"
                   onClick={toggleVoice}
-                  disabled={!voiceSupported || isStreaming}
-                  aria-pressed={listening}
-                  aria-label={listening ? "Stop voice input" : "Start voice input"}
-                  className={listening ? "text-red-500 animate-pulse" : ""}
+                  disabled={!voiceSupported || isStreaming || transcribing}
+                  aria-pressed={recording}
+                  aria-label={recording ? "Stop voice input" : "Start voice input"}
+                  className={
+                    recording
+                      ? "text-red-500 animate-pulse"
+                      : transcribing
+                      ? "text-[var(--color-accent)]"
+                      : ""
+                  }
                 >
-                  <MicIcon className="w-[18px] h-[18px]" />
+                  {transcribing ? (
+                    <SpinnerIcon className="w-[18px] h-[18px] animate-spin" />
+                  ) : (
+                    <MicIcon className="w-[18px] h-[18px]" />
+                  )}
                 </Button>
               </Tooltip>
 
@@ -366,5 +385,6 @@ const SendIcon     = ({ className }) => <svg className={className} fill="none" v
 const StopIcon     = ({ className }) => <svg className={className} fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2.5" /></svg>;
 const AttachIcon   = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>;
 const MicIcon      = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M9 11V7a3 3 0 016 0v4a3 3 0 01-6 0z" /></svg>;
+const SpinnerIcon  = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeWidth={2} d="M12 3a9 9 0 109 9" /></svg>;
 const SparklesIcon = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>;
 const XIcon        = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>;

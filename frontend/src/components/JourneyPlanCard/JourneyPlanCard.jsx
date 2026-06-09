@@ -1066,7 +1066,7 @@ function AISummary({ summary, isLoading }) {
   return (
     <div className="bg-[var(--color-accent-subtle)] border border-[var(--color-accent-muted)] rounded-xl px-5 py-4">
       <SummaryHeader />
-      <p className="mt-1.5 text-sm text-[var(--color-text-secondary)] leading-relaxed">{text}</p>
+      <p className="mt-1.5 text-sm text-[var(--color-text-secondary)] leading-relaxed" dir="auto">{text}</p>
     </div>
   );
 }

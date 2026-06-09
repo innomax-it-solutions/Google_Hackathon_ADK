@@ -59,14 +59,19 @@ export function LanguageProvider({ children }) {
     return saved && SUPPORTED.has(saved) ? saved : "en";
   });
 
+  // Per-language writing direction, exposed for components that render text in
+  // `language`. We deliberately do NOT mirror the whole app for RTL languages:
+  // the chrome (navbar, cards, layout) always stays LTR, and only the actual
+  // generated text blocks flip — each via dir="auto" on its own element. So a
+  // chat that switches to Arabic keeps its layout and earlier English cards intact.
   const dir = RTL.has(language) ? "rtl" : "ltr";
 
   useEffect(() => {
     const root = document.documentElement;
     root.lang = language;
-    root.dir = dir;
+    root.dir = "ltr"; // keep the app layout LTR regardless of language
     localStorage.setItem("medbridge_language", language);
-  }, [language, dir]);
+  }, [language]);
 
   const setLanguage = (code) => {
     if (SUPPORTED.has(code)) setLanguageState(code);
