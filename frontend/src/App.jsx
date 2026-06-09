@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ChatPage from "./pages/ChatPage";
 import FormPage from "./pages/FormPage";
+import WishlistPage from "./pages/WishlistPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 export default function App() {
@@ -33,6 +34,15 @@ export default function App() {
       />
       {/* alias so both /form and /forms work */}
       <Route path="/forms" element={<Navigate to="/form" replace />} />
+
+      <Route
+        path="/wishlist"
+        element={
+          <ProtectedRoute>
+            <WishlistPage />
+          </ProtectedRoute>
+        }
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

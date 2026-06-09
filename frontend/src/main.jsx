@@ -9,6 +9,7 @@ import { ToastProvider as UIToastProvider } from "./components/ui/Toast";
 import { ToastProvider } from "./context/ToastContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { ChatProvider } from "./context/ChatContext";
+import { WishlistProvider } from "./context/WishlistContext";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -21,7 +22,9 @@ createRoot(document.getElementById("root")).render(
             <ToastProvider>
               <LanguageProvider>
                 <ChatProvider>
-                  <App />
+                  <WishlistProvider>
+                    <App />
+                  </WishlistProvider>
                 </ChatProvider>
               </LanguageProvider>
             </ToastProvider>
