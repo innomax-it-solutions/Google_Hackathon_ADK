@@ -36,6 +36,8 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { COUNTRIES } from "../../constants/countries";
 import { MEDBRIDGE_TRANSLATOR_LANGUAGES, languageName } from "../../constants/languages";
 import { useChatContext } from "../../context/ChatContext";
+import { useWishlist, wishlistKey } from "../../context/WishlistContext";
+import { useToast } from "../../context/ToastContext";
 import { fetchHospitalEstimate } from "../../services/api";
 
 const COUNTRY_NAME = Object.fromEntries(COUNTRIES.map((c) => [c.code, c.name]));
@@ -68,6 +70,8 @@ export default function JourneyPlanCard({
   const flightReqRef = useRef(new Set());   // ids whose live flights were requested
 
   const { sendMessage, isStreaming } = useChatContext();
+  const wishlist = useWishlist();
+  const { toast } = useToast();
   const reduce = useReducedMotion();
 
   // Which panel is currently active (hovered / focused / tapped). null = none.
@@ -268,6 +272,48 @@ export default function JourneyPlanCard({
   }, [intake, procedureLabel, selectedHospital, selectedId, recommendedId, hospital,
       selCost, selectedFlight, selFlights, docs, booking, summary, cache, list]);
 
+  // --- Wishlist: save the SELECTED hospital's plan so it can be re-viewed,
+  // chatted about, or booked later from /wishlist. -----------------------------
+  const wlKey = wishlistKey(intake?.condition, selectedId || recommendedId);
+  const isSaved = wishlist.has(wlKey);
+
+  const handleToggleWishlist = useCallback(() => {
+    const hName = selectedHospital?.name || selCost?.hospital_name || "the recommended hospital";
+    const hCity = selectedHospital?.city || selCost?.hospital_city || "";
+    const result = wishlist.toggle({
+      key: wlKey,
+      // Snapshot of the EXACT card props so /wishlist re-renders it faithfully.
+      // cost/flights are the SELECTED hospital's, so the saved view leads with it.
+      props: {
+        intake,
+        hospital,
+        cost: selCost,
+        docs,
+        booking,
+        flights: selFlights,
+        flightParams,
+        summary,
+      },
+      // Small derived fields for the list row + chat/booking seed messages.
+      preview: {
+        title: (procedureLabel || capitalize(intake?.condition) || "Journey plan"),
+        procedureLabel: procedureLabel || capitalize(intake?.condition) || null,
+        condition: intake?.condition || null,
+        hospitalName: hName,
+        hospitalCity: hCity,
+        country: countryLabel(intake?.origin_country),
+        totalUsd: range(selCost?.total_usd_min, selCost?.total_usd_max, fmtUsd),
+        budget: Number.isFinite(intake?.budget_usd) ? intake.budget_usd : null,
+        timelineWeeks: Number.isFinite(intake?.timeline_weeks) ? intake.timeline_weeks : null,
+      },
+    });
+    toast({
+      title: result === "saved" ? "Saved to your wishlist" : "Removed from wishlist",
+      variant: result === "saved" ? "success" : "default",
+    });
+  }, [wishlist, wlKey, selectedHospital, selCost, intake, hospital, docs, booking,
+      selFlights, flightParams, summary, procedureLabel, toast]);
+
   return (
     <motion.div
       initial={reduce ? false : { opacity: 0, y: 10 }}
@@ -330,7 +376,21 @@ export default function JourneyPlanCard({
         <AISummary summary={summary} isLoading={isLoading} />
 
         {canDownload && (
-          <div className="flex items-center justify-end pt-1">
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleToggleWishlist(); }}
+              title={isSaved ? "Remove from wishlist" : "Save this plan to your wishlist"}
+              aria-pressed={isSaved}
+              className={`inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-lg px-3 py-1.5 border transition-colors ${
+                isSaved
+                  ? "border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
+                  : "border-[var(--color-border)] text-[var(--color-text-secondary)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+              }`}
+            >
+              <IconHeart className="w-3.5 h-3.5" filled={isSaved} />
+              {isSaved ? "Saved" : "Wishlist"}
+            </button>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); handleDownloadPdf(); }}
@@ -1481,6 +1541,13 @@ function IconDownload({ className = "w-4 h-4" }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+    </svg>
+  );
+}
+function IconHeart({ className = "w-4 h-4", filled = false }) {
+  return (
+    <svg className={className} fill={filled ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
     </svg>
   );
 }

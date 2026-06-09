@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useState, useEffect }    from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useChatContext } from "../../context/ChatContext";
+import { useWishlist }    from "../../context/WishlistContext";
 import { useTheme }       from "../../context/ThemeContext";
 import { useToast }       from "../../context/ToastContext";
 import { useLanguage }    from "../../context/LanguageContext";
@@ -38,6 +39,7 @@ function useBackendStatus() {
 
 export default function Header() {
   const { clearConversation, messages }          = useChatContext();
+  const { count: wishlistCount }                  = useWishlist();
   const { isDark, toggle }                        = useTheme();
   const { toast }                                 = useToast();
   const { language, setLanguage, languages }      = useLanguage();
@@ -46,6 +48,7 @@ export default function Header() {
   const location                                  = useLocation();
 
   const onFormPage = location.pathname.toLowerCase() === "/form";
+  const onWishlistPage = location.pathname.toLowerCase() === "/wishlist";
 
   const hasMessages = messages.length > 0;
   const firstUser   = messages.find(m => m.role === "user");
@@ -151,6 +154,24 @@ export default function Header() {
               </Button>
             </Tooltip>
           )}
+
+          {/* Wishlist — saved Journey Plan cards */}
+          <Tooltip content="Your saved plans" side="bottom">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/wishlist")}
+              className={`gap-1.5 ${onWishlistPage ? "text-[var(--color-accent)]" : "text-[var(--color-text-tertiary)]"}`}
+            >
+              <WishlistIcon className="w-3.5 h-3.5" filled={onWishlistPage} />
+              <span className="hidden sm:inline">Wishlist</span>
+              {wishlistCount > 0 && (
+                <span className="ml-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[var(--color-accent)] text-white text-[10px] font-bold leading-4 text-center">
+                  {wishlistCount}
+                </span>
+              )}
+            </Button>
+          </Tooltip>
 
           {/* New conversation — appears when chat has messages */}
           <AnimatePresence>
@@ -274,3 +295,4 @@ const ChatIcon     = ({ className }) => <svg className={className} fill="none" v
 const GlobeIcon    = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M3.6 9h16.8 M3.6 15h16.8 M12 3a15 15 0 010 18 M12 3a15 15 0 000 18" /></svg>;
 const CheckIcon    = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" /></svg>;
 const FormIcon     = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6 4h4" /></svg>;
+const WishlistIcon = ({ className, filled }) => <svg className={className} fill={filled ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>;

@@ -79,6 +79,22 @@ export function ChatProvider({ children }) {
     setIsStreaming(false);
   }, [stop]);
 
+  // ── start a FRESH conversation seeded with one message ───────────────────────
+  // Used by the Wishlist page ("Chat with agent" / "Confirm booking"): clears any
+  // current conversation, then sends the seed so the agent rebuilds the plan in
+  // chat. `clear` + `add` both use functional setState, so the seed appends to the
+  // freshly-emptied list.
+  const startCardConversation = useCallback((text) => {
+    const t = (text || "").trim();
+    if (!t) return;
+    stop();
+    setPendingClarification(null);
+    clear();
+    add({ role: "user", content: t, status: "complete" });
+    setIsStreaming(true);
+    send(t, language, () => setIsStreaming(false));
+  }, [stop, clear, add, send, language]);
+
   // ── clear ───────────────────────────────────────────────────────────────────
   const clearConversation = useCallback(() => {
     stop();
@@ -110,6 +126,7 @@ export function ChatProvider({ children }) {
   return (
     <Ctx.Provider value={{
       messages, sessionId, isStreaming, sendMessage, stopStream, clearConversation, regenerate,
+      startCardConversation,
       pendingClarification, submitClarification, dismissClarification,
     }}>
       {children}
