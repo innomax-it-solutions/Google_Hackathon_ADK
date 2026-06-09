@@ -39,7 +39,7 @@ const PROMPT_LIBRARY = [
 export default function Composer() {
   const { sendMessage, stopStream, isStreaming } = useChatContext();
   const { toast }                                = useToast();
-  const { t, setLanguage }                       = useLanguage();
+  const { t }                                    = useLanguage();
 
   const [text,     setText]     = useState("");
   const [files,    setFiles]    = useState([]);
@@ -63,14 +63,16 @@ export default function Composer() {
       setText(base ? `${base} ${interim}` : interim);
       requestAnimationFrame(() => grow(textareaRef.current));
     },
-    onResult: (phrase, lang) => {
+    onResult: (phrase) => {
+      // Append the finalized phrase to the box. We deliberately do NOT change
+      // the app's reply language here: the transcript is already in the spoken
+      // language, and the agent mirrors the user's language by default (see
+      // backend _with_language). Forcing a global language was persisting to
+      // localStorage and made every later message reply in that language.
       const base = voiceBaseRef.current;
       const merged = base ? `${base} ${phrase}` : phrase;
       voiceBaseRef.current = merged;
       setText(merged);
-      // Switch the reply language to whatever was spoken (STT auto-detects it),
-      // so the agent answers in kind. setLanguage ignores codes outside our 10.
-      if (lang) setLanguage(lang);
       requestAnimationFrame(() => grow(textareaRef.current));
     },
     onError: (code) => {

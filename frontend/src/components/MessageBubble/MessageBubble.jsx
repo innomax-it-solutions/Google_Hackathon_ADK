@@ -44,7 +44,7 @@ function UserMessage({ message }) {
       <div className="max-w-[80%] sm:max-w-[68%]">
         <MessageAttachments attachments={message.attachments} />
         <div className="bg-gradient-to-br from-indigo-500 to-violet-600 dark:from-indigo-600 dark:to-violet-700 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-[14px] leading-relaxed shadow-sm">
-          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+          <p className="whitespace-pre-wrap break-words" dir="auto">{message.content}</p>
         </div>
         <MessageActions message={message} isLast={false} align="right" />
       </div>

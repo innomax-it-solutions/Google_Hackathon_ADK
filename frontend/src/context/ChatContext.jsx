@@ -15,7 +15,6 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import { useMessages }  from "../hooks/useChat";
 import { useStreaming }  from "../hooks/useStreaming";
-import { useLanguage }   from "./LanguageContext";
 import { COUNTRIES }     from "../constants/countries";
 import { CLARIFY_ORDER } from "../constants/clarify";
 import { languageName, languageCode } from "../constants/languages";
@@ -52,7 +51,6 @@ export function ChatProvider({ children }) {
   const { messages, sessionId, add, patch, patchFn, clear, popLast } = useMessages();
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingClarification, setPendingClarification] = useState(null);
-  const { language } = useLanguage();
 
   // The streaming hook surfaces an ask_patient_details tool call here.
   const { send, stop } = useStreaming({
@@ -70,8 +68,12 @@ export function ChatProvider({ children }) {
     setPendingClarification(null);
     add({ role: "user", content: t, status: "complete", attachments });
     setIsStreaming(true);
-    send(t, language, () => setIsStreaming(false), supportLanguage);
-  }, [isStreaming, add, send, language]);
+    // Pass "" as the reply language so the agent mirrors the user's own language
+    // (typed or dictated) — replies always match what the user actually wrote.
+    // We deliberately don't force the persisted UI language: that made a single
+    // Arabic voice message pin every later reply (and new chats) to Arabic.
+    send(t, "", () => setIsStreaming(false), supportLanguage);
+  }, [isStreaming, add, send]);
 
   // ── stop ────────────────────────────────────────────────────────────────────
   const stopStream = useCallback(() => {
@@ -94,8 +96,8 @@ export function ChatProvider({ children }) {
     if (!lastUser) return;
     popLast();                           // remove last assistant message
     setIsStreaming(true);
-    send(lastUser.content, language, () => setIsStreaming(false));
-  }, [isStreaming, messages, popLast, send, language]);
+    send(lastUser.content, "", () => setIsStreaming(false));
+  }, [isStreaming, messages, popLast, send]);
 
   // ── clarification popup ───────────────────────────────────────────────────────
   const submitClarification = useCallback((answers) => {
