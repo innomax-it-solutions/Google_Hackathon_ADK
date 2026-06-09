@@ -65,6 +65,11 @@ def hospitals_offering(procedure_slug: str) -> list[str]:
     return [hid for hid, procs in cm.items() if procedure_slug in procs]
 
 
+def procedures_at(hospital_id: str) -> list[str]:
+    """Procedure slugs this hospital actually prices (for 'what do they offer?')."""
+    return list(_cost_matrix().get(hospital_id, {}).keys())
+
+
 @lru_cache(maxsize=1)
 def procedure_catalog() -> dict[str, dict]:
     """slug -> {specialty, label, offered_by_count, usd_min}. Built from the

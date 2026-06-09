@@ -11,6 +11,7 @@ import CardErrorBoundary from "../JourneyPlanCard/CardErrorBoundary";
 
 const TOOL_LABELS = {
   find_hospitals:          "Searching hospitals",
+  get_hospital_cost:       "Checking that hospital",
   estimate_cost:           "Estimating treatment costs",
   get_document_checklist:  "Checking visa & documents",
   request_appointment:     "Booking appointment",

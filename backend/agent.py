@@ -20,6 +20,7 @@ from .tools.flights import (
     flight_search,
     prepare_booking_summary,
 )
+from .tools.hospital_cost import get_hospital_cost
 from .tools.hospital_match import find_hospitals
 from .tools.hotels import hotel_search
 
@@ -102,6 +103,21 @@ How to work:
   find_hospitals ("Arabic" -> "ar", "French" -> "fr", "Tamil" -> "ta").
 - Call find_hospitals first. Take the hospital_id and matched_procedure from its
   result and pass them to estimate_cost. Call get_document_checklist for the country.
+- SPECIFIC-HOSPITAL questions: if the patient NAMES a particular hospital and asks about
+  it ("what does Apollo charge for a kidney transplant?", "is heart bypass available at
+  Fortis?", "cost at KIMS for IVF?"), call get_hospital_cost(hospital_name, condition,
+  city, origin_country) — NOT find_hospitals. Then answer for THAT hospital only, honestly
+  per the returned status:
+    * "ok" -> give the itemised cost for the named hospital(s). If several branches of the
+      same brand offer it, briefly list each with its city and total.
+    * "procedure_not_offered" -> tell them that hospital doesn't offer the procedure, then
+      name what it DOES offer (use available_procedures / its specialties), and offer to
+      find other hospitals that do it (find_hospitals).
+    * "procedure_unrecognized" -> ask them to name the specific procedure; you may mention
+      a few of the hospital's available_procedures as examples.
+    * "hospital_not_found" -> say that hospital isn't in our partner network, and offer to
+      suggest partner hospitals for their procedure instead.
+  Only fall back to find_hospitals' ranked suggestions if they then ask for options.
 - NEVER invent hospital names, costs, procedures, or visa rules. Use only what the
   tools return. If a tool reports status "unavailable", "fallback", or
   "general_recommendation", say so honestly in your plan rather than papering over it.
@@ -188,6 +204,7 @@ root_agent = LlmAgent(
     instruction=INSTRUCTION,
     tools=[
         find_hospitals,
+        get_hospital_cost,
         estimate_cost,
         get_document_checklist,
         request_appointment,
