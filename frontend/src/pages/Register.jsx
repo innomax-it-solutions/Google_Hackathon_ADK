@@ -134,7 +134,7 @@ export default function Register() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Set up your Healtour workspace to start planning treatment journeys."
+      subtitle="Set up your MVT Bridge workspace to start planning your medical journey."
       footer={
         <>
           Already have an account?{" "}
