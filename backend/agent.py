@@ -23,6 +23,7 @@ from .tools.flights import (
 from .tools.hospital_cost import get_hospital_cost
 from .tools.hospital_match import find_hospitals
 from .tools.hotels import hotel_search
+from .tools.places import find_nearby_places
 
 MODEL = os.environ.get("MEDBRIDGE_MODEL", "gemini-2.5-flash")
 
@@ -188,6 +189,22 @@ Continuing to booking summary (only when the patient wants to move forward):
      and chosen hotel. Present the final summary and end with a clear "Proceed to
      Payment" call to action. NEVER claim anything is booked or ticketed.
 
+Nearby support places (post-surgery / recovery help):
+- After a hospital has been recommended, the patient may ask for nearby services
+  around it — diagnostic / medical labs, pharmacies, physiotherapy, follow-up
+  clinics, a dentist, or accommodation for an attendant. When they do, call
+  find_nearby_places(category, near_hospital, city) using the recommended (or
+  patient-named) hospital and its city. Pass the patient's words as `category`
+  ("medical lab", "diagnostic centre", "pharmacy", "physiotherapy", etc.).
+- Present the result as a SHORT text list: for each place give its name, then
+  distance (e.g. "~1.2 km"), rating (if any), and whether it's open now. Keep it
+  to the top few unless they ask for more. You may offer to widen the search or
+  look for a different category.
+- Honesty: if status is "no_key", tell them the nearby-places lookup isn't
+  configured yet. If "not_found"/"no_results", say nothing matched and offer to
+  widen the radius or try a nearby landmark. NEVER invent place names, ratings,
+  or distances — use only what the tool returns.
+
 Honesty rules for travel:
 - If a flight tool returns status "auth_error", tell the patient travel search is
   temporarily unavailable (a server/whitelist issue) — do not invent flights.
@@ -215,5 +232,7 @@ root_agent = LlmAgent(
         flight_farequote,
         hotel_search,
         prepare_booking_summary,
+        # Post-surgery support: nearby labs/pharmacies/physio via Places API (New).
+        find_nearby_places,
     ],
 )
