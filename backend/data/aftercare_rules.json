@@ -1,0 +1,427 @@
+{
+  "_meta": {
+    "version": "2026-06",
+    "note": "General post-operative guidance keyed by surgical specialty. Not a substitute for the operating surgeon's discharge instructions.",
+    "disclaimer": "This recovery & aftercare plan is general guidance based on your procedure's specialty, not personalised medical advice. Always follow the specific instructions given by your treating surgeon and care team. Seek urgent medical care if you experience any of the warning signs listed."
+  },
+
+  "orthopedics": {
+    "specialty_label": "Orthopaedics",
+    "recovery_phases": [
+      { "phase": "Immediate / in-hospital", "window": "Day 0–3", "focus": "Pain control, wound monitoring, early assisted mobilisation, blood-clot prevention." },
+      { "phase": "Early recovery", "window": "Week 1–2", "focus": "Suture/staple check, supervised physiotherapy begins, gradual weight-bearing as advised." },
+      { "phase": "Rehabilitation", "window": "Week 2–6", "focus": "Progressive range-of-motion and strengthening; most patients regain functional mobility." },
+      { "phase": "Consolidation", "window": "Week 6–12+", "focus": "Return to routine activity; high-impact activity only when cleared." }
+    ],
+    "fit_to_fly": { "base_days": 7, "per_ward_day": 1.0, "per_icu_day": 2.0, "min_days": 10, "max_days": 21, "note": "Long-haul flights carry a clot (DVT) risk after joint/limb surgery. Most orthopaedic patients are cleared to fly 10–21 days post-op with compression stockings, in-flight movement, and surgeon sign-off." },
+    "in_india_review": { "before_flying": "A post-operative review with the operating surgeon, including wound inspection, suture/staple removal, and a fitness-to-fly note.", "typical_day": "Around day 10–14, before the return flight." },
+    "teleconsult_schedule": [
+      { "when": "2 weeks after returning home", "purpose": "Wound healing and physiotherapy progress check." },
+      { "when": "6 weeks post-op", "purpose": "Range-of-motion / weight-bearing review." },
+      { "when": "3 months post-op", "purpose": "Functional recovery and imaging review if advised." }
+    ],
+    "red_flags": [
+      "Fever above 38°C or chills",
+      "Increasing redness, swelling, warmth or pus at the surgical site",
+      "Calf pain, swelling or redness in one leg (possible blood clot)",
+      "Sudden chest pain or breathlessness (seek emergency care immediately)",
+      "Wound edges separating or persistent bleeding/discharge",
+      "Pain not controlled by prescribed medication"
+    ],
+    "physiotherapy": { "needed": true, "guidance": "Structured physiotherapy is central to orthopaedic recovery — follow the prescribed exercise plan and attend supervised sessions.", "start": "Usually begins in hospital within 1–2 days of surgery and continues for several weeks." },
+    "medication_wound_care": [
+      "Keep the wound clean and dry; follow the dressing schedule given at discharge.",
+      "Take prescribed pain relief and any blood-clot prevention medication exactly as directed.",
+      "Do not stop antibiotics early if they were prescribed.",
+      "Watch for and report any medication side-effects to your care team."
+    ],
+    "follow_up_tests": [
+      "Wound review and suture/staple removal",
+      "Follow-up X-ray of the operated joint/bone if advised",
+      "Blood count if on clot-prevention medication"
+    ],
+    "diet_lifestyle": [
+      "Eat a protein-rich, balanced diet to support tissue healing.",
+      "Stay well hydrated, especially around air travel.",
+      "Avoid smoking and alcohol, which slow bone and wound healing.",
+      "Use mobility aids as advised and avoid falls."
+    ],
+    "specialty_note": "Weight-bearing limits vary by procedure (e.g. joint replacement vs fracture fixation) — your surgeon's specific instructions override this general guidance."
+  },
+
+  "cardiac": {
+    "specialty_label": "Cardiac & Heart",
+    "recovery_phases": [
+      { "phase": "Immediate / ICU", "window": "Day 0–2", "focus": "Cardiac monitoring, breathing exercises, careful early mobilisation." },
+      { "phase": "Ward recovery", "window": "Day 3–7", "focus": "Wound care, gradual walking, medication stabilisation (blood thinners, blood pressure)." },
+      { "phase": "Early rehabilitation", "window": "Week 2–6", "focus": "Supervised cardiac rehabilitation; light activity, avoid heavy lifting and chest strain." },
+      { "phase": "Consolidation", "window": "Week 6–12+", "focus": "Sternum/incision healing, graduated return to activity, risk-factor control." }
+    ],
+    "fit_to_fly": { "base_days": 14, "per_ward_day": 1.0, "per_icu_day": 2.0, "min_days": 14, "max_days": 28, "note": "After open-heart surgery (e.g. bypass/valve) most patients are advised to wait ~3–4 weeks before long-haul flying; minimally-invasive procedures like angioplasty may need only ~1 week. Always get cardiologist sign-off." },
+    "in_india_review": { "before_flying": "A cardiology review with ECG/echo as advised, wound check, and a fitness-to-fly clearance.", "typical_day": "Around day 14–21 for open-heart; earlier for angioplasty." },
+    "teleconsult_schedule": [
+      { "when": "1–2 weeks after returning home", "purpose": "Wound and symptom check, medication review." },
+      { "when": "4–6 weeks post-op", "purpose": "Cardiac rehab progress and ECG/echo review if advised." },
+      { "when": "3 months post-op", "purpose": "Risk-factor and medication optimisation." }
+    ],
+    "red_flags": [
+      "Chest pain, pressure or tightness",
+      "Shortness of breath at rest or worsening breathlessness",
+      "Palpitations or irregular/very fast heartbeat",
+      "Swelling of the legs or sudden weight gain",
+      "Redness, discharge or opening of the chest/leg wound",
+      "Fever above 38°C or fainting"
+    ],
+    "physiotherapy": { "needed": true, "guidance": "Cardiac rehabilitation (graded exercise + breathing) is strongly recommended; avoid lifting and pushing/pulling that strains the chest while the sternum heals.", "start": "Breathing exercises begin in hospital; structured cardiac rehab over the following weeks." },
+    "medication_wound_care": [
+      "Take blood thinners, blood-pressure and cholesterol medication exactly as prescribed.",
+      "Keep chest and leg (graft-site) wounds clean and dry.",
+      "Do not stop any cardiac medication without medical advice.",
+      "Report bruising/bleeding if on anticoagulants."
+    ],
+    "follow_up_tests": [
+      "ECG and echocardiogram as advised",
+      "Lipid profile and blood pressure review",
+      "INR monitoring if on warfarin"
+    ],
+    "diet_lifestyle": [
+      "Follow a low-salt, heart-healthy diet.",
+      "Stop smoking completely and avoid alcohol.",
+      "Stay hydrated and move regularly during the flight to reduce clot risk.",
+      "Increase activity gradually as your rehab team advises."
+    ],
+    "specialty_note": "Open-heart recovery is more cautious than catheter-based procedures (e.g. angioplasty) — your cardiologist's specific timeline takes priority."
+  },
+
+  "neurosurgery": {
+    "specialty_label": "Neurosurgery & Spine",
+    "recovery_phases": [
+      { "phase": "Immediate / ICU", "window": "Day 0–2", "focus": "Neurological monitoring, pain control, careful positioning." },
+      { "phase": "Ward recovery", "window": "Day 3–7", "focus": "Gradual mobilisation, wound care, monitoring for any neurological change." },
+      { "phase": "Early rehabilitation", "window": "Week 2–6", "focus": "Neuro/spine physiotherapy, posture and activity guidance, avoid bending/lifting/twisting after spine surgery." },
+      { "phase": "Consolidation", "window": "Week 6–12+", "focus": "Progressive return to activity as cleared; ongoing rehab for any deficits." }
+    ],
+    "fit_to_fly": { "base_days": 14, "per_ward_day": 1.0, "per_icu_day": 2.5, "min_days": 21, "max_days": 35, "note": "Cabin pressure changes are a concern after brain surgery; most neurosurgery patients are advised to wait ~3–6 weeks and only fly with explicit surgeon clearance and post-op imaging if required." },
+    "in_india_review": { "before_flying": "A neurosurgical review (with imaging if advised), wound check, and explicit fitness-to-fly clearance.", "typical_day": "Around day 21+ depending on the procedure." },
+    "teleconsult_schedule": [
+      { "when": "2 weeks after returning home", "purpose": "Wound healing and neurological status check." },
+      { "when": "6 weeks post-op", "purpose": "Rehabilitation progress and imaging review if advised." },
+      { "when": "3 months post-op", "purpose": "Functional recovery review." }
+    ],
+    "red_flags": [
+      "Severe or worsening headache",
+      "New weakness, numbness or difficulty speaking",
+      "Vision changes or seizures",
+      "Clear fluid leaking from the wound or nose (possible CSF leak)",
+      "High fever, neck stiffness or confusion",
+      "Loss of bladder or bowel control (after spine surgery)"
+    ],
+    "physiotherapy": { "needed": true, "guidance": "Neuro- and spine-rehabilitation is important; follow movement restrictions (no bending/lifting/twisting after spine surgery) precisely.", "start": "Gentle mobilisation in hospital, progressing under a physiotherapist's guidance." },
+    "medication_wound_care": [
+      "Take anti-seizure or other prescribed medication exactly as directed.",
+      "Keep the wound clean and dry; avoid soaking until cleared.",
+      "Do not stop any medication abruptly without advice.",
+      "Report any new neurological symptom immediately."
+    ],
+    "follow_up_tests": [
+      "Wound review and suture/staple removal",
+      "CT/MRI imaging if advised",
+      "Neurological assessment"
+    ],
+    "diet_lifestyle": [
+      "Rest adequately and avoid strenuous activity until cleared.",
+      "Stay hydrated and eat a balanced diet.",
+      "Avoid alcohol, especially if on anti-seizure medication.",
+      "Avoid driving until your surgeon confirms it is safe."
+    ],
+    "specialty_note": "After a craniotomy, do not fly until your surgeon confirms it is safe — cabin pressure can be hazardous early after brain surgery."
+  },
+
+  "oncology": {
+    "specialty_label": "Oncology (Cancer Care)",
+    "recovery_phases": [
+      { "phase": "Treatment cycle", "window": "Per cycle", "focus": "Chemotherapy/radiation is delivered in cycles; recovery happens between cycles rather than as a single post-op convalescence." },
+      { "phase": "Between-cycle recovery", "window": "Days after each cycle", "focus": "Manage side-effects (nausea, fatigue); the low-immunity (neutropenia) window needs extra infection precautions." },
+      { "phase": "Surgical recovery (if applicable)", "window": "Week 1–6", "focus": "For cancer surgery (e.g. mastectomy, Whipple), follow standard surgical wound and activity recovery." },
+      { "phase": "Surveillance", "window": "Ongoing", "focus": "Scheduled scans and reviews to monitor response and recurrence." }
+    ],
+    "fit_to_fly": { "base_days": 7, "per_ward_day": 1.0, "per_icu_day": 2.0, "min_days": 7, "max_days": 21, "note": "Travel timing depends on your treatment cycle and blood counts, not a single operation. Avoid flying during low-immunity periods; confirm timing with your oncologist." },
+    "in_india_review": { "before_flying": "An oncology review of blood counts and treatment plan, and clearance that you are stable to travel.", "typical_day": "Between cycles, when counts have recovered." },
+    "teleconsult_schedule": [
+      { "when": "Before each subsequent cycle", "purpose": "Blood counts, side-effect review, and dosing decisions." },
+      { "when": "As scheduled by your oncologist", "purpose": "Response assessment and imaging." },
+      { "when": "Long-term", "purpose": "Surveillance for recurrence." }
+    ],
+    "red_flags": [
+      "Fever above 38°C during a low-immunity period (medical emergency — seek care immediately)",
+      "Uncontrolled vomiting, diarrhoea or inability to keep fluids down",
+      "Unusual bleeding or bruising",
+      "Severe mouth sores or inability to eat/drink",
+      "Breathlessness, chest pain or a fast heartbeat",
+      "Signs of infection at any line/port site"
+    ],
+    "physiotherapy": { "needed": false, "guidance": "Gentle activity as tolerated supports recovery; specialist rehab (e.g. after mastectomy) may be advised.", "start": "As advised by your care team." },
+    "medication_wound_care": [
+      "Take supportive medication (anti-nausea, growth factors) exactly as prescribed.",
+      "Keep any line/port site clean and watch for infection.",
+      "Avoid crowds and infection exposure during low-immunity windows.",
+      "Report side-effects promptly — many are manageable when caught early."
+    ],
+    "follow_up_tests": [
+      "Full blood count before each cycle",
+      "Scans/markers to assess treatment response",
+      "Organ-function tests as advised"
+    ],
+    "diet_lifestyle": [
+      "Eat small, frequent, well-cooked meals; prioritise food safety.",
+      "Stay hydrated, especially after each cycle.",
+      "Avoid alcohol and smoking.",
+      "Rest during fatigue and pace your activity."
+    ],
+    "specialty_note": "Cancer recovery is cycle-based: your fit-to-fly timing and follow-ups depend on your treatment schedule and blood counts, not a single surgery date. A fever during a low-immunity period is an emergency."
+  },
+
+  "urology": {
+    "specialty_label": "Urology & Kidney",
+    "recovery_phases": [
+      { "phase": "Immediate / in-hospital", "window": "Day 0–3", "focus": "Pain control, monitoring urine output, catheter/stent care, early mobilisation." },
+      { "phase": "Early recovery", "window": "Week 1–2", "focus": "Wound/catheter review; for transplant, close monitoring of graft function and immunosuppression." },
+      { "phase": "Recovery", "window": "Week 2–6", "focus": "Gradual return to activity; stent removal if placed; hydration emphasis." },
+      { "phase": "Consolidation", "window": "Week 6–12+", "focus": "For transplant, ongoing immunosuppression and infection vigilance." }
+    ],
+    "fit_to_fly": { "base_days": 7, "per_ward_day": 1.0, "per_icu_day": 2.0, "min_days": 7, "max_days": 28, "note": "Minor procedures (e.g. PCNL, TURP) often allow flying within ~1–2 weeks; kidney transplant needs a longer, carefully cleared window (~3–4 weeks) due to immunosuppression and infection risk." },
+    "in_india_review": { "before_flying": "A urology review of wound/catheter/stent and kidney function, with a fitness-to-fly note (transplant patients need detailed clearance).", "typical_day": "Day 10–21 depending on the procedure." },
+    "teleconsult_schedule": [
+      { "when": "1–2 weeks after returning home", "purpose": "Wound/stent check and kidney-function review." },
+      { "when": "4–6 weeks post-op", "purpose": "Recovery review; transplant immunosuppression monitoring." },
+      { "when": "3 months post-op", "purpose": "Function and medication review." }
+    ],
+    "red_flags": [
+      "Inability to pass urine, or much less urine than usual",
+      "Heavy or persistent blood in the urine",
+      "Fever above 38°C, chills or burning urination (infection)",
+      "Severe flank or abdominal pain",
+      "For transplant: any sign of infection or reduced urine output (urgent)",
+      "Wound redness, swelling or discharge"
+    ],
+    "physiotherapy": { "needed": false, "guidance": "Light activity and walking aid recovery; avoid heavy lifting until cleared.", "start": "As advised by your care team." },
+    "medication_wound_care": [
+      "Take all prescribed medication, including immunosuppressants for transplant, exactly as directed and never miss doses.",
+      "Keep wound and any catheter/stent site clean.",
+      "Complete any prescribed antibiotic course.",
+      "Report side-effects, especially anything affecting urine output."
+    ],
+    "follow_up_tests": [
+      "Kidney function blood tests",
+      "Urine tests",
+      "Stent removal if one was placed; ultrasound if advised"
+    ],
+    "diet_lifestyle": [
+      "Drink plenty of fluids unless your doctor restricts them.",
+      "Follow any kidney-friendly diet advice (especially after transplant).",
+      "Avoid alcohol and smoking.",
+      "For transplant, avoid infection exposure and follow hygiene advice carefully."
+    ],
+    "specialty_note": "Kidney-transplant recovery requires lifelong immunosuppression and strict infection precautions — follow your transplant team's specific instructions; this is general guidance only."
+  },
+
+  "general-surgery": {
+    "specialty_label": "General Surgery",
+    "recovery_phases": [
+      { "phase": "Immediate / in-hospital", "window": "Day 0–2", "focus": "Pain control, wound monitoring, early walking, return of bowel function." },
+      { "phase": "Early recovery", "window": "Week 1–2", "focus": "Wound/suture review, gradual return to light activity, normal diet as tolerated." },
+      { "phase": "Recovery", "window": "Week 2–6", "focus": "Progressive return to routine; avoid heavy lifting after abdominal surgery." }
+    ],
+    "fit_to_fly": { "base_days": 7, "per_ward_day": 1.0, "per_icu_day": 2.0, "min_days": 7, "max_days": 14, "note": "After laparoscopic surgery many patients can fly within ~1 week; open abdominal surgery may need ~10–14 days. Trapped gas and wound healing matter — get surgeon sign-off." },
+    "in_india_review": { "before_flying": "A surgical review with wound inspection, suture removal if needed, and a fitness-to-fly note.", "typical_day": "Around day 7–14." },
+    "teleconsult_schedule": [
+      { "when": "1–2 weeks after returning home", "purpose": "Wound healing and recovery check." },
+      { "when": "4–6 weeks post-op", "purpose": "Return-to-activity review." }
+    ],
+    "red_flags": [
+      "Fever above 38°C or chills",
+      "Increasing abdominal pain, swelling or hardness",
+      "Persistent vomiting or inability to pass stool/gas",
+      "Wound redness, swelling, discharge or opening",
+      "Sudden chest pain or breathlessness (seek emergency care)",
+      "Heavy bleeding from the wound"
+    ],
+    "physiotherapy": { "needed": false, "guidance": "Walking aids recovery; avoid heavy lifting and straining after abdominal surgery until cleared.", "start": "Early walking in hospital." },
+    "medication_wound_care": [
+      "Keep the wound clean and dry; follow the dressing instructions.",
+      "Take prescribed pain relief and complete any antibiotics.",
+      "Avoid heavy lifting/straining for the advised period.",
+      "Report any side-effects to your care team."
+    ],
+    "follow_up_tests": [
+      "Wound review and suture removal",
+      "Any imaging or blood tests your surgeon advises"
+    ],
+    "diet_lifestyle": [
+      "Eat light, balanced meals and reintroduce normal food as tolerated.",
+      "Stay hydrated and keep mobile to prevent clots.",
+      "Avoid alcohol and smoking while healing.",
+      "Follow any procedure-specific diet (e.g. staged diet after bariatric surgery)."
+    ],
+    "specialty_note": "Recovery varies widely by procedure (e.g. hernia vs bariatric surgery) — bariatric patients must follow a staged diet and lifelong supplement plan from their surgeon."
+  },
+
+  "gynecology": {
+    "specialty_label": "Gynaecology & Fertility",
+    "recovery_phases": [
+      { "phase": "Immediate / in-hospital", "window": "Day 0–2", "focus": "Pain control, wound monitoring, early mobilisation." },
+      { "phase": "Early recovery", "window": "Week 1–2", "focus": "Wound/suture review, gradual return to light activity, manage expected light bleeding." },
+      { "phase": "Recovery", "window": "Week 2–6", "focus": "Progressive return to routine; avoid heavy lifting and intercourse until cleared." }
+    ],
+    "fit_to_fly": { "base_days": 7, "per_ward_day": 1.0, "per_icu_day": 2.0, "min_days": 7, "max_days": 14, "note": "After laparoscopic gynaecological surgery flying is often possible within ~1 week; open hysterectomy may need ~10–14 days. Get surgeon sign-off." },
+    "in_india_review": { "before_flying": "A gynaecology review with wound check and a fitness-to-fly note.", "typical_day": "Around day 7–14." },
+    "teleconsult_schedule": [
+      { "when": "1–2 weeks after returning home", "purpose": "Wound healing and bleeding review." },
+      { "when": "4–6 weeks post-op", "purpose": "Recovery and return-to-activity review." }
+    ],
+    "red_flags": [
+      "Heavy vaginal bleeding (soaking a pad an hour) or large clots",
+      "Fever above 38°C or foul-smelling discharge",
+      "Severe or worsening pelvic/abdominal pain",
+      "Wound redness, swelling or discharge",
+      "Pain, swelling or redness in one leg (possible clot)",
+      "Difficulty passing urine"
+    ],
+    "physiotherapy": { "needed": false, "guidance": "Light activity and walking support recovery; avoid heavy lifting until cleared.", "start": "Early walking in hospital." },
+    "medication_wound_care": [
+      "Keep the wound clean and dry; follow dressing advice.",
+      "Take prescribed pain relief and complete any antibiotics.",
+      "Avoid tampons, intercourse and heavy lifting until cleared.",
+      "Report any side-effects to your care team."
+    ],
+    "follow_up_tests": [
+      "Wound review and suture removal if needed",
+      "Histology results review if tissue was removed",
+      "Any imaging your surgeon advises"
+    ],
+    "diet_lifestyle": [
+      "Eat a balanced, fibre-rich diet to ease bowel movements.",
+      "Stay hydrated and keep gently mobile.",
+      "Avoid alcohol and smoking while healing.",
+      "Rest and resume activity gradually."
+    ],
+    "specialty_note": "Fertility treatment (e.g. IVF) is not major surgery — it follows a hormonal protocol; watch for ovarian hyperstimulation symptoms (severe bloating, pain, breathlessness) and contact your clinic if they occur."
+  },
+
+  "ophthalmology": {
+    "specialty_label": "Ophthalmology (Eye Care)",
+    "recovery_phases": [
+      { "phase": "Immediate", "window": "Day 0–2", "focus": "Eye protection (shield), eye-drop schedule, avoid rubbing or pressure on the eye." },
+      { "phase": "Early recovery", "window": "Week 1–2", "focus": "Review of vision and healing; continue drops; avoid dust, water splashes and strain." },
+      { "phase": "Recovery", "window": "Week 2–6", "focus": "Gradual return to normal activity; vision continues to stabilise." }
+    ],
+    "fit_to_fly": { "base_days": 3, "per_ward_day": 1.0, "per_icu_day": 1.0, "min_days": 3, "max_days": 14, "note": "Most cataract patients can fly within a few days; retinal surgery with an intraocular gas bubble has strict flying restrictions — do not fly until cleared." },
+    "in_india_review": { "before_flying": "An ophthalmology review confirming the eye is healing well and (critically) that there is no gas bubble preventing flight.", "typical_day": "Within the first week for most procedures." },
+    "teleconsult_schedule": [
+      { "when": "1 week after returning home", "purpose": "Vision and healing check." },
+      { "when": "4–6 weeks post-op", "purpose": "Visual outcome and any refraction review." }
+    ],
+    "red_flags": [
+      "Sudden loss or marked worsening of vision",
+      "Severe eye pain not relieved by prescribed medication",
+      "Increasing redness, swelling or discharge from the eye",
+      "New flashes of light or a shower of floaters",
+      "A curtain or shadow across the vision"
+    ],
+    "physiotherapy": { "needed": false, "guidance": "No physiotherapy; protect the eye and follow activity restrictions.", "start": "Not applicable." },
+    "medication_wound_care": [
+      "Use prescribed eye drops exactly on schedule.",
+      "Wear the eye shield as advised, especially while sleeping.",
+      "Do not rub the eye or let water/soap enter it.",
+      "Avoid heavy lifting, straining and swimming until cleared."
+    ],
+    "follow_up_tests": [
+      "Visual acuity check",
+      "Intraocular pressure and retinal review as advised"
+    ],
+    "diet_lifestyle": [
+      "Rest your eyes and avoid prolonged strain early on.",
+      "Avoid dusty or smoky environments.",
+      "Avoid alcohol and smoking while healing.",
+      "Wear sunglasses outdoors if light-sensitive."
+    ],
+    "specialty_note": "Do NOT fly with an intraocular gas bubble (used in some retinal surgeries) — cabin pressure can cause dangerous eye-pressure rises. Confirm with your surgeon before any flight."
+  },
+
+  "ent": {
+    "specialty_label": "ENT (Ear, Nose & Throat)",
+    "recovery_phases": [
+      { "phase": "Immediate", "window": "Day 0–2", "focus": "Pain control, monitoring for bleeding, soft/cool diet after throat surgery." },
+      { "phase": "Early recovery", "window": "Week 1–2", "focus": "Healing of the operated area; avoid nose-blowing/straining after sinus surgery." },
+      { "phase": "Recovery", "window": "Week 2–4", "focus": "Gradual return to normal activity and diet." }
+    ],
+    "fit_to_fly": { "base_days": 5, "per_ward_day": 1.0, "per_icu_day": 1.0, "min_days": 7, "max_days": 14, "note": "After sinus or ear surgery, cabin pressure changes can cause pain or affect healing — many surgeons advise waiting ~1–2 weeks. Get sign-off, especially after sinus surgery." },
+    "in_india_review": { "before_flying": "An ENT review confirming healing and no active bleeding, with a fitness-to-fly note.", "typical_day": "Around day 7–10." },
+    "teleconsult_schedule": [
+      { "when": "1–2 weeks after returning home", "purpose": "Healing check." },
+      { "when": "4 weeks post-op", "purpose": "Recovery and symptom review." }
+    ],
+    "red_flags": [
+      "Heavy or persistent bleeding from the throat, nose or ear",
+      "Fever above 38°C",
+      "Difficulty breathing or swallowing",
+      "Severe pain not relieved by medication",
+      "Clear fluid leaking from the nose after sinus surgery"
+    ],
+    "physiotherapy": { "needed": false, "guidance": "No physiotherapy; rest the voice/throat as advised after relevant procedures.", "start": "Not applicable." },
+    "medication_wound_care": [
+      "Take prescribed pain relief and complete any antibiotics.",
+      "Avoid nose-blowing, straining and heavy lifting after sinus surgery.",
+      "Use any prescribed nasal sprays/rinses as directed.",
+      "Report bleeding promptly."
+    ],
+    "follow_up_tests": [
+      "ENT examination of the operated area",
+      "Hearing test after ear surgery if advised"
+    ],
+    "diet_lifestyle": [
+      "Eat soft, cool foods after tonsil/throat surgery; stay hydrated.",
+      "Avoid very hot, spicy or scratchy foods early on.",
+      "Avoid smoking and alcohol while healing.",
+      "Rest and avoid strenuous activity until cleared."
+    ],
+    "specialty_note": "After sinus surgery, avoid flying too soon — pressure changes can be painful and affect healing; follow your ENT surgeon's timing."
+  },
+
+  "GENERIC": {
+    "specialty_label": "General post-operative care",
+    "recovery_phases": [
+      { "phase": "Immediate / in-hospital", "window": "Day 0–3", "focus": "Pain control, wound monitoring, early mobilisation." },
+      { "phase": "Early recovery", "window": "Week 1–2", "focus": "Wound/suture review, gradual return to light activity." },
+      { "phase": "Recovery", "window": "Week 2–6", "focus": "Progressive return to normal routine as tolerated." }
+    ],
+    "fit_to_fly": { "base_days": 7, "per_ward_day": 1.0, "per_icu_day": 2.0, "min_days": 7, "max_days": 21, "note": "Fit-to-fly timing depends on the procedure and your recovery. Get a fitness-to-fly note from your surgeon before booking the return flight." },
+    "in_india_review": { "before_flying": "A post-operative review with your treating doctor and a fitness-to-fly clearance.", "typical_day": "Before the return flight, on a date your surgeon advises." },
+    "teleconsult_schedule": [
+      { "when": "1–2 weeks after returning home", "purpose": "Recovery and wound-healing check." },
+      { "when": "4–6 weeks post-op", "purpose": "Progress review." }
+    ],
+    "red_flags": [
+      "Fever above 38°C or chills",
+      "Increasing pain, redness, swelling or discharge at the surgical site",
+      "Sudden chest pain or breathlessness (seek emergency care immediately)",
+      "Any symptom that feels severe or rapidly worsening"
+    ],
+    "physiotherapy": { "needed": false, "guidance": "Follow any rehabilitation advice your surgeon provides.", "start": "As advised by your care team." },
+    "medication_wound_care": [
+      "Keep the wound clean and dry and follow the discharge dressing instructions.",
+      "Take all prescribed medication exactly as directed; do not stop early.",
+      "Report any side-effects to your care team."
+    ],
+    "follow_up_tests": [
+      "Wound review and suture removal as advised",
+      "Any tests your surgeon recommends at discharge"
+    ],
+    "diet_lifestyle": [
+      "Eat a balanced, protein-rich diet and stay hydrated.",
+      "Avoid smoking and alcohol while healing.",
+      "Resume activity gradually as tolerated."
+    ],
+    "specialty_note": "This is general guidance — your surgeon's specific discharge instructions always take priority."
+  }
+}

@@ -11,7 +11,9 @@ import os
 
 from google.adk.agents import LlmAgent
 
+from .tools.aftercare import get_aftercare_plan
 from .tools.booking import request_appointment
+from .tools.catalog import list_procedures
 from .tools.clarify import ask_patient_details
 from .tools.cost_estimator import estimate_cost
 from .tools.document_checklist import get_document_checklist
@@ -66,6 +68,24 @@ How to work:
   In short: behave like a helpful human concierge. Only start collecting details or calling
   tools once the patient has expressed a genuine treatment need or asked you to plan. When in
   doubt, ask a friendly clarifying question rather than jumping into intake.
+- BROWSING TREATMENTS: if the patient asks what treatments/procedures are
+  available, or isn't sure what they need ("what can you treat?", "what surgeries
+  do you offer?", "I have a heart problem but don't know the procedure"), use
+  list_procedures to help them narrow down — do NOT guess a procedure or jump to
+  find_hospitals yet:
+    * Call list_procedures() with no argument to get the CATEGORIES. Present them
+      as a short list (name + a couple of example treatments + "from $X"), and
+      ask which area they're interested in.
+    * When they pick a category (or named one up front, e.g. "cardiac",
+      "cancer", "eye"), call list_procedures(specialty=that) and list the
+      treatments in it (name + from-price), then ask them to pick the one that
+      matches their need.
+    * Once they choose a specific treatment, proceed with the normal planning
+      flow — pass that procedure's `slug` (returned by list_procedures) to
+      find_hospitals as the condition so the match is exact. Still collect any
+      missing intake details (origin country, etc.) as usual.
+  Only use this browse flow when they're exploring; if the patient already states
+  a clear condition ("I need a knee replacement"), skip it and plan directly.
 - Always reason in terms of the patient's 2-letter ISO origin country code. If the
   patient gives a country name ("Dubai", "the UAE"), convert it to the code yourself
   (UAE -> AE) before calling tools.
@@ -197,13 +217,38 @@ Nearby support places (post-surgery / recovery help):
   patient-named) hospital and its city. Pass the patient's words as `category`
   ("medical lab", "diagnostic centre", "pharmacy", "physiotherapy", etc.).
 - Present the result as a SHORT text list: for each place give its name, then
-  distance (e.g. "~1.2 km"), rating (if any), and whether it's open now. Keep it
-  to the top few unless they ask for more. You may offer to widen the search or
-  look for a different category.
+  distance (e.g. "~1.2 km"), rating (if any), and whether it's open now, and
+  ALWAYS include its Google Maps link (the place's maps_url) so the patient can
+  open directions in one tap. Format the name as a markdown link to maps_url
+  (e.g. "[Apollo Diagnostics](maps_url) — ~1.2 km, ★4.3, open now"). Use the
+  maps_url EXACTLY as returned; never fabricate or alter a link. Keep it to the
+  top few unless they ask for more. You may offer to widen the search or look for
+  a different category.
 - Honesty: if status is "no_key", tell them the nearby-places lookup isn't
   configured yet. If "not_found"/"no_results", say nothing matched and offer to
   widen the radius or try a nearby landmark. NEVER invent place names, ratings,
   or distances — use only what the tool returns.
+
+Recovery & aftercare (post-operative continuum of care):
+- ONLY when the patient asks about recovery, aftercare, "what happens after the
+  operation", "when can I fly home", follow-up care, rehabilitation, wound care,
+  or what to expect during convalescence — and a hospital/procedure has already
+  been recommended or selected — call get_aftercare_plan with the chosen procedure
+  (the SAME condition/slug you used for find_hospitals) and the patient's
+  origin_country. Do NOT call it proactively or fold it into the initial Journey
+  Plan; it is a follow-up step the patient initiates.
+- Do NOT describe recovery from your own knowledge — relay ONLY what the tool
+  returns. A "Recovery & Aftercare" card renders the full detail, so keep your
+  chat reply brief: a one-line intro, the fit-to-fly window (fit_to_fly_days +
+  why), and a pointer to the card. Always include the tool's disclaimer verbatim
+  and add that the operating surgeon's specific instructions take priority.
+- After presenting, OFFER to find nearby physiotherapy, diagnostic labs, or
+  pharmacies around the hospital via find_nearby_places — but only call it when
+  the patient says yes (or already asked for a place).
+- Honesty: if status is "fallback" or "unrecognized", say clearly that this is
+  GENERAL recovery guidance (not specific to their exact procedure) and invite
+  them to name the specific procedure for a tailored plan. NEVER invent recovery
+  times, warning signs, or medications.
 
 Honesty rules for travel:
 - If a flight tool returns status "auth_error", tell the patient travel search is
@@ -220,6 +265,7 @@ root_agent = LlmAgent(
     description="Autonomous medical-tourism coordinator that plans a patient's treatment journey to India.",
     instruction=INSTRUCTION,
     tools=[
+        list_procedures,
         find_hospitals,
         get_hospital_cost,
         estimate_cost,
@@ -234,5 +280,7 @@ root_agent = LlmAgent(
         prepare_booking_summary,
         # Post-surgery support: nearby labs/pharmacies/physio via Places API (New).
         find_nearby_places,
+        # Post-operative continuum of care: data-backed recovery + follow-up plan.
+        get_aftercare_plan,
     ],
 )

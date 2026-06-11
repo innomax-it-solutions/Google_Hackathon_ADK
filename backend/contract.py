@@ -40,6 +40,11 @@ def _doc_rules() -> dict:
     return _load("country_doc_rules.json")
 
 
+@lru_cache(maxsize=1)
+def _aftercare_rules() -> dict:
+    return _load("aftercare_rules.json")
+
+
 # --- hospitals -------------------------------------------------------------
 
 def hospitals() -> list[dict]:
@@ -96,6 +101,11 @@ def procedure_catalog() -> dict[str, dict]:
 
 def doc_rules() -> dict:
     return _doc_rules()
+
+
+def aftercare_rules() -> dict:
+    """Specialty-keyed post-operative care templates (+ GENERIC + _meta)."""
+    return _aftercare_rules()
 
 
 # --- API request schema (FastAPI / frontend contract) ----------------------
