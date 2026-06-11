@@ -33,7 +33,14 @@ import urllib.request
 from functools import lru_cache
 from pathlib import Path
 
-_ENV_PATH = Path(__file__).resolve().parent.parent / "tbo_credentials.json"
+# Default to backend/tbo_credentials.json, but allow an override via env so the
+# secret can be mounted OUTSIDE the package dir. On Cloud Run a secret mounted
+# into backend/ shadows the whole package (hiding main.py) and breaks imports;
+# mount it at e.g. /secrets/tbo_credentials.json and set TBO_CREDENTIALS_PATH.
+_ENV_PATH = Path(
+    os.environ.get("TBO_CREDENTIALS_PATH")
+    or (Path(__file__).resolve().parent.parent / "tbo_credentials.json")
+)
 
 AUTH_URL = (
     "https://api.travelboutiqueonline.com/SharedAPI/SharedData.svc/rest/Authenticate"

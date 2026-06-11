@@ -18,7 +18,18 @@ Search / FareQuote are read-only and free.
 
 from __future__ import annotations
 
+import os
+
+from . import aviation_client as aviation
 from . import tbo_client as tbo
+
+# Which backend serves flight data. TBO authorizes by IP allow-list (breaks on
+# Cloud Run's dynamic egress IP); Aviationstack authorizes by API key (works
+# anywhere) but has no fares, so it returns DISTANCE-ESTIMATED prices. Switch
+# back to live TBO pricing by setting FLIGHT_PROVIDER=tbo (env) once the server
+# IP is whitelisted — the entire TBO path below is preserved and still runs in
+# that mode. Default: aviationstack.
+FLIGHT_PROVIDER = os.environ.get("FLIGHT_PROVIDER", "aviationstack").strip().lower()
 
 # JourneyType / cabin / pax-type constants, named so the code reads clearly.
 _JOURNEY_ONEWAY, _JOURNEY_RETURN = 1, 2
@@ -178,6 +189,26 @@ def flight_search(
         except Exception:
             return_date = ""
 
+    # --- Provider switch ----------------------------------------------------
+    # Aviationstack path: key-auth (no IP whitelist), distance-estimated fares.
+    # Returns the exact same shape as the TBO path below. To go back to live TBO
+    # pricing, set FLIGHT_PROVIDER=tbo (requires the server IP whitelisted).
+    if FLIGHT_PROVIDER == "aviationstack":
+        try:
+            return aviation.search(
+                origin=origin,
+                destination=destination,
+                departure_date=departure_date,
+                return_date=return_date,
+                adults=adults,
+                children=children,
+                infants=infants,
+                cabin_class=cabin_class,
+            )
+        except Exception as exc:  # never let the estimator crash the plan
+            return {"status": "error", "message": f"Flight estimate failed: {exc}"}
+
+    # --- TBO path (live pricing; IP-whitelist gated) ------------------------
     segments = [{
         "Origin": origin.strip().upper(),
         "Destination": destination.strip().upper(),
@@ -278,6 +309,17 @@ def flight_farequote(trace_id: str, result_index: str) -> dict:
         "currency", "is_lcc", "is_refundable", and echoes "trace_id"/"result_index".
         status "search_expired" means the 15-minute window lapsed — re-search.
     """
+    # Aviationstack traces aren't TBO TraceIds; re-read the estimated fare from
+    # the cached search instead of calling FareQuote (there is nothing to quote).
+    if FLIGHT_PROVIDER == "aviationstack" or str(trace_id).startswith("AVS-"):
+        quoted = aviation.farequote(trace_id, result_index)
+        if quoted:
+            return quoted
+        return {
+            "status": "search_expired",
+            "message": "This flight estimate has expired. Please search again.",
+        }
+
     try:
         fq = _farequote(trace_id, result_index)
     except tbo.TboError as exc:

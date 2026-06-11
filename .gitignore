@@ -18,6 +18,7 @@ credentials.json
 service_account*.json
 gcloud-service-key.json
 tbo_credentials.json
+aviationstack_credentials.json
 
 # --- Node / frontend ---
 node_modules/
