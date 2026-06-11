@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { HeartPulse, ArrowLeft, ShieldCheck, Sparkles, Globe2 } from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
-import ParentCompanyBadge from "../ui/ParentCompanyBadge";
+import MvtBridgeLogo from "../ui/MvtBridgeLogo";
 
 const HIGHLIGHTS = [
   { icon: Sparkles, title: "AI journey coordination", text: "Hospital matching, cost estimates, and travel prep in one guided flow." },
@@ -20,14 +20,8 @@ function BrandPanel() {
       <div className="pointer-events-none absolute -right-16 bottom-10 h-64 w-64 rounded-full bg-accent-500/10 blur-3xl" />
 
       <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
-        <Link to="/" className="group inline-flex items-center gap-3" aria-label="Healtour home">
-          <img
-            src="/healtour-logo.png"
-            alt="Healtour — Click. Fly. Heal."
-            className="h-9 w-auto max-w-[180px] object-contain"
-          />
-          <span className="sr-only">Healtour · Medical Tourism Platform</span>
-          <ParentCompanyBadge variant="footer" className="ml-1" />
+        <Link to="/" className="group inline-flex" aria-label="MVT Bridge home">
+          <MvtBridgeLogo size="md" showSubtitle subtitle="Medical Value Tourism" onDark />
         </Link>
 
         <div className="max-w-md">
@@ -66,7 +60,7 @@ function BrandPanel() {
         </div>
 
         <p className="text-xs text-slate-500">
-          © {new Date().getFullYear()} Healtour · Demo environment
+          © {new Date().getFullYear()} MVT Bridge
         </p>
       </div>
     </div>
@@ -105,12 +99,8 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
             className="w-full max-w-md"
           >
             {/* Compact logo (mobile only — brand rail is hidden there) */}
-            <Link to="/" className="mb-8 inline-flex items-center gap-2.5 lg:hidden" aria-label="Healtour home">
-              <img
-                src="/healtour-logo.png"
-                alt="Healtour — Click. Fly. Heal."
-                className="h-9 w-auto max-w-[180px] object-contain"
-              />
+            <Link to="/" className="mb-8 inline-flex lg:hidden" aria-label="MVT Bridge home">
+              <MvtBridgeLogo size="md" showSubtitle subtitle="Medical Value Tourism" />
             </Link>
 
             <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">

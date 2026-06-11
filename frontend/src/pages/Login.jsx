@@ -75,7 +75,7 @@ export default function Login() {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to continue to your Healtour workspace."
+      subtitle="Sign in to continue to your MVT Bridge workspace."
       footer={
         <>
           Don&apos;t have an account?{" "}
