@@ -1119,13 +1119,14 @@ function buildTimeline(cost, procedureLabel) {
   const ward = Number.isFinite(cost?.ward_days) ? cost.ward_days : 0;
 
   const steps = [
-    { day: "Day 0", label: "Arrival & pre-op evaluation" },
-    { day: "Day 1", label: procedureLabel || "Procedure" },
+    { day: "Day 1", label: "Arrival & pre-op evaluation" },
+    { day: "Day 2", label: procedureLabel || "Procedure" },
   ];
-  let cur = 1;
+  let cur = 2;
   if (icu > 0) {
-    const end = 1 + icu;
-    steps.push({ day: end === 2 ? "Day 2" : `Day 2–${end}`, label: "ICU & close monitoring" });
+    const start = cur + 1;
+    const end = cur + icu;
+    steps.push({ day: start === end ? `Day ${start}` : `Day ${start}–${end}`, label: "ICU & close monitoring" });
     cur = end;
   }
   if (ward > 0) {

@@ -7,7 +7,13 @@ import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge }   from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 import JourneyPlanCard   from "../JourneyPlanCard/JourneyPlanCard";
+import JourneyPlanLoader from "../JourneyPlanCard/JourneyPlanLoader";
+import RecoveryCard      from "../JourneyPlanCard/RecoveryCard";
 import CardErrorBoundary from "../JourneyPlanCard/CardErrorBoundary";
+
+// While these planning tools are still running we show the journey-plan loader
+// animation in place of the (half-built) card, until the turn finishes.
+const PLANNING_TOOLS = ["find_hospitals", "flight_search", "estimate_cost", "get_document_checklist"];
 
 const TOOL_LABELS = {
   find_hospitals:          "Searching hospitals",
@@ -19,6 +25,8 @@ const TOOL_LABELS = {
   flight_farequote:        "Confirming flight fare",
   hotel_search:            "Finding hotels",
   prepare_booking_summary: "Preparing booking summary",
+  find_nearby_places:      "Finding nearby places",
+  get_aftercare_plan:      "Preparing aftercare plan",
 };
 
 const msgVariants = {
@@ -66,6 +74,15 @@ function AssistantMessage({ message, isLast }) {
   const hasPlan  = !isError && (
     td.find_hospitals || td.estimate_cost || td.get_document_checklist || td.request_appointment
   );
+  // Post-op recovery plan renders as its own card (a separate turn from the
+  // initial plan, so its message carries only get_aftercare_plan).
+  const hasRecovery = !isError && td.get_aftercare_plan;
+  const hasCard     = hasPlan || hasRecovery;
+
+  // Show the animated journey-plan loader while a planning turn is still
+  // streaming — it stands in for the card until the full output is generated.
+  const isPlanningTurn = !isError && (message.tools || []).some((t) => PLANNING_TOOLS.includes(t.name));
+  const showLoader     = isStreaming && isPlanningTurn;
 
   return (
     <motion.div
@@ -84,7 +101,7 @@ function AssistantMessage({ message, isLast }) {
       <div className="flex-1 min-w-0 pt-1">
 
         {/* Tool badges */}
-        {message.tools?.length > 0 && (
+        {message.tools?.length > 0 && !showLoader && (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {message.tools.map((t, i) => (
               <Badge key={i} variant={t.status === "done" ? "success" : "running"}>
@@ -98,8 +115,18 @@ function AssistantMessage({ message, isLast }) {
           </div>
         )}
 
-        {/* Structured Journey Plan card (renders once any tool returns data) */}
-        {hasPlan && (
+        {/* Journey-plan loading animation — shown while a planning turn streams,
+            then replaced by the full card once the output is generated. */}
+        {showLoader && (
+          <div className="mb-3">
+            <CardErrorBoundary>
+              <JourneyPlanLoader tools={message.tools} />
+            </CardErrorBoundary>
+          </div>
+        )}
+
+        {/* Structured Journey Plan card (renders once the planning turn finishes) */}
+        {hasPlan && !showLoader && (
           <div className="mb-3">
             <CardErrorBoundary>
               <JourneyPlanCard
@@ -117,8 +144,17 @@ function AssistantMessage({ message, isLast }) {
           </div>
         )}
 
+        {/* Post-operative Recovery & Aftercare card (its own turn). */}
+        {hasRecovery && (
+          <div className="mb-3">
+            <CardErrorBoundary>
+              <RecoveryCard plan={td.get_aftercare_plan} isLoading={isStreaming} />
+            </CardErrorBoundary>
+          </div>
+        )}
+
         {/* Skeleton loading state (the card shows its own skeletons when active) */}
-        {isEmpty && !hasPlan && (
+        {isEmpty && !hasCard && !showLoader && (
           <div className="space-y-2.5 w-full max-w-xs">
             <Skeleton className="h-3.5 w-3/4" />
             <Skeleton className="h-3.5 w-full" />
@@ -136,8 +172,8 @@ function AssistantMessage({ message, isLast }) {
 
         {/* Content — after a plan card the narrative is tucked into a collapsible
             "Description" box; without a card it renders inline as a normal reply. */}
-        {!isEmpty && !isError && (
-          hasPlan ? (
+        {!isEmpty && !isError && !showLoader && (
+          hasCard ? (
             <DescriptionBox>
               <div className="assistant-prose">
                 {renderMarkdown(message.content)}
@@ -157,7 +193,7 @@ function AssistantMessage({ message, isLast }) {
         )}
 
         {/* Actions */}
-        {!isError && !isEmpty && (
+        {!isError && !isEmpty && !showLoader && (
           <MessageActions message={message} isLast={isLast} />
         )}
       </div>
