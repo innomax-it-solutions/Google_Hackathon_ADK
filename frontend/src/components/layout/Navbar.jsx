@@ -4,22 +4,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { NAV_LINKS } from "../../data/landingData";
 import ThemeToggle from "../ui/ThemeToggle";
+import MvtBridgeLogo from "../ui/MvtBridgeLogo";
 
 function Logo() {
   return (
     <a
       href="#top"
-      className="group flex min-w-0 flex-col gap-1"
-      aria-label="Healtour home"
+      className="group min-w-0 transition-opacity hover:opacity-90"
+      aria-label="MVT Bridge home"
     >
-      <img
-        src="/healtour-logo.png"
-        alt="Healtour — Click. Fly. Heal."
-        className="h-9 w-auto max-w-[180px] object-contain object-left transition-opacity group-hover:opacity-90 sm:h-10 sm:max-w-[200px]"
-      />
-      <span className="text-[11px] font-medium text-ink-muted sm:text-xs">
-        Medical Tourism Platform
-      </span>
+      <MvtBridgeLogo size="md" showSubtitle subtitle="Medical Tourism Platform" />
     </a>
   );
 }

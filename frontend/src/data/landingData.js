@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Healtour — static landing page content.
+// MVT Bridge — static landing page content.
 // All data here is dummy/illustrative for the marketing UI only. No backend,
 // no API calls. Swap these arrays for real data later without touching the UI.
 // ---------------------------------------------------------------------------
@@ -10,13 +10,12 @@ export const NAV_LINKS = [
   { label: "Services", href: "#features" },
   { label: "Testimonials", href: "#testimonials" },
   { label: "About Us", href: "#about" },
-  { label: "Contact Us", href: "#contact" },
 ];
 
 export const ABOUT_HEALTOUR = {
   description:
-    "Healtour is an AI-powered medical tourism platform that simplifies international healthcare journeys by helping patients connect with trusted hospitals, transparent treatment costs, and end-to-end travel coordination.",
-  ecosystem: "Part of the Innomax Skills ecosystem.",
+    "MVT Bridge is an AI-powered medical tourism platform that simplifies international healthcare journeys by helping patients connect with trusted hospitals, transparent treatment costs, and end-to-end travel coordination.",
+  ecosystem: "Your end-to-end partner for Medical Value Tourism.",
   highlights: [
     {
       icon: "Globe",
@@ -140,30 +139,44 @@ export const HOW_IT_WORKS = [
   {
     step: "01",
     icon: "ClipboardList",
-    title: "Share your needs",
+    title: "Share Medical Needs",
     description:
-      "Tell the agent your condition, budget, country, and timeline. No paperwork, no calls.",
+      "Tell us about your condition, preferred destination, treatment goals, and budget.",
   },
   {
     step: "02",
-    icon: "Sparkles",
-    title: "AI matches hospitals",
+    icon: "BrainCircuit",
+    title: "AI Matches Hospitals",
     description:
-      "The agent reasons over an accredited network to shortlist the best-fit hospitals for you.",
+      "Our AI matches you with trusted hospitals and specialists based on your medical needs.",
   },
   {
     step: "03",
-    icon: "Calculator",
-    title: "Get a cost estimate",
+    icon: "CircleDollarSign",
+    title: "Receive Cost Estimate",
     description:
-      "Receive an itemised, transparent treatment estimate in your currency — no hidden fees.",
+      "Get transparent treatment estimates, expected stay duration, and care recommendations.",
   },
   {
     step: "04",
-    icon: "Route",
-    title: "Receive your journey plan",
+    icon: "Plane",
+    title: "Visa & Travel Guidance",
     description:
-      "A complete plan: hospital, costs, visa & document checklist, and travel timeline.",
+      "Receive help with medical visa documents, travel planning, and accommodation coordination.",
+  },
+  {
+    step: "05",
+    icon: "HeartPulse",
+    title: "Treatment & Recovery",
+    description:
+      "Get coordinated hospital care, treatment support, and recovery assistance throughout your stay.",
+  },
+  {
+    step: "06",
+    icon: "CheckCircle2",
+    title: "Return Journey Support",
+    description:
+      "Receive discharge planning, fit-to-fly guidance, and post-treatment follow-up coordination.",
   },
 ];
 
@@ -245,9 +258,9 @@ export const JOURNEY_PREVIEW = {
     "Doctor's referral letter",
   ],
   timeline: [
-    { day: "Day 0", event: "Arrival & pre-op evaluation" },
-    { day: "Day 2", event: "CABG surgery" },
-    { day: "Day 3–6", event: "ICU & recovery" },
+    { day: "Day 1", event: "Arrival & pre-op evaluation" },
+    { day: "Day 3", event: "CABG surgery" },
+    { day: "Day 4–7", event: "ICU & recovery" },
     { day: "Day 10", event: "Discharge & fit-to-fly" },
   ],
   summary:
@@ -266,7 +279,7 @@ export const COMPARISON = {
     ],
   },
   healtour: {
-    title: "Healtour AI",
+    title: "MVT Bridge AI",
     points: [
       "A complete journey plan in seconds",
       "Itemised, transparent cost estimates upfront",
@@ -315,7 +328,7 @@ export const TESTIMONIALS = [
     initials: "AO",
     color: "from-blue-500 to-indigo-500",
     quote:
-      "Healtour planned everything — hospital, costs, even my visa checklist — in one go. I arrived in India knowing exactly what to expect.",
+      "MVT Bridge planned everything — hospital, costs, even my visa checklist — in one go. I arrived in India knowing exactly what to expect.",
   },
   {
     name: "Daniel Mwangi",
@@ -342,22 +355,23 @@ export const TESTIMONIALS = [
     initials: "JC",
     color: "from-amber-500 to-orange-500",
     quote:
-      "World-class care at a fraction of the cost, with zero guesswork. Healtour handled the complexity so I could focus on recovery.",
+      "World-class care at a fraction of the cost, with zero guesswork. MVT Bridge handled the complexity so I could focus on recovery.",
   },
 ];
 
 export const FOOTER = {
-  tagline: "AI-powered medical tourism coordination platform.",
-  explore: [
+  description:
+    "AI-powered medical tourism coordination platform helping patients connect with trusted hospitals worldwide.",
+  platform: [
     { label: "Hospitals", href: "#hospitals" },
     { label: "How It Works", href: "#how-it-works" },
     { label: "Features", href: "#features" },
-    { label: "Resources", href: "#journey" },
+    { label: "Patient Journey", href: "#journey" },
   ],
-  contact: {
-    address:
-      "Healtour Solutions Pvt Ltd 805B, Nanjappa Majestic Commercial, JNTU Rd, Kukatpally, Housing Board Colony, Hyderabad, Telangana - 500072, India",
-    email: "info@healtourin.com",
-    phone: "+91 92811 11724",
-  },
+  reasons: [
+    "AI-Powered Matching",
+    "Transparent Pricing",
+    "Trusted Hospitals",
+    "End-to-End Support",
+  ],
 };

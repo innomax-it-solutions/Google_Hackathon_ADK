@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Building2, Sparkles } from "lucide-react";
 import Icon from "../ui/Icon";
-import ParentCompanyBadge from "../ui/ParentCompanyBadge";
 import { HERO_STATS } from "../../data/landingData";
 import BenefitsCircleStage from "./BenefitsCircle";
 
@@ -135,7 +134,7 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.15 }}
               className="mt-5 text-lg leading-relaxed text-ink-muted"
             >
-              Healtour helps international patients find trusted hospitals, estimate treatment
+              MVT Bridge helps international patients find trusted hospitals, estimate treatment
               costs, and coordinate every step of their medical travel journey with AI-powered
               guidance.
             </motion.p>
@@ -152,15 +151,6 @@ export default function Hero() {
               <a href="#hospitals" className="btn-secondary w-full sm:w-auto">
                 <Building2 className="h-4 w-4" /> View Hospitals
               </a>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.32 }}
-              className="mt-5 flex justify-center lg:justify-start"
-            >
-              <ParentCompanyBadge />
             </motion.div>
           </motion.div>
 
