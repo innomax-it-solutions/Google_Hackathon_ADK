@@ -1,0 +1,35 @@
+# Only the backend is containerized — keep the frontend, git, and docs out of the
+# build context so the upload stays small and no secrets leak into the image.
+
+# Frontend (deployed separately to static hosting)
+frontend/
+
+# Git / editor / OS
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docs & local scratch
+Documents/
+*.md
+.adk/
+
+# Secrets — provided at runtime via Cloud Run env vars / Secret Manager.
+backend/.env
+backend/.env.*
+backend/tbo_credentials.json
+*.key
+*.pem
+
+# Python cruft
+**/__pycache__/
+**/*.py[cod]
+.venv/
+venv/
+
+# Local test/scratch artifacts
+backend/test_flight.py
+*.log

@@ -1,0 +1,9 @@
+# Controls what gcloud uploads as the Cloud Build context. Keep it lean.
+# Do NOT list .env.production — the build needs it baked into the bundle.
+node_modules/
+dist/
+.vite/
+*.log
+.env
+wl_flight_*
+firebase.json

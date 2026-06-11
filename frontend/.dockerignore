@@ -1,0 +1,9 @@
+# Keep the build context small. Do NOT ignore .env.production — the build needs it.
+node_modules
+dist
+.vite
+*.log
+wl_flight_*
+firebase.json
+Dockerfile
+.dockerignore
