@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, ArrowRight, Loader2, Wand2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
 import AuthField from "../components/auth/AuthField";
 import FormAlert from "../components/auth/FormAlert";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ui/Toast";
 import { validateEmail, validatePassword } from "../utils/validation";
-import { credentialsConfigured, getDemoCredentials } from "../utils/auth";
 
 export default function Login() {
   const { isAuthenticated, login } = useAuth();
@@ -59,13 +58,6 @@ export default function Login() {
     } else {
       setFormError(result.error);
     }
-  };
-
-  const fillDemo = () => {
-    const demo = getDemoCredentials();
-    setValues({ email: demo.email, password: demo.password });
-    setErrors({});
-    setFormError("");
   };
 
   const forgotPassword = () => {
@@ -153,16 +145,6 @@ export default function Login() {
             </>
           )}
         </motion.button>
-
-        {credentialsConfigured() && (
-          <button
-            type="button"
-            onClick={fillDemo}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 py-2.5 text-xs font-medium text-ink-muted transition hover:border-brand-300 hover:text-brand-600 dark:border-white/15 dark:hover:border-brand-400/40 dark:hover:text-brand-300"
-          >
-            <Wand2 className="h-3.5 w-3.5" /> Fill demo credentials
-          </button>
-        )}
       </form>
     </AuthLayout>
   );
