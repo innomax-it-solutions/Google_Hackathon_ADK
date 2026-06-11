@@ -83,7 +83,7 @@ export default function Header() {
           </div>
           <div className="flex items-center gap-2 leading-none">
             <span className="font-semibold text-[14px] tracking-tight text-[var(--color-text-primary)]">
-              MedBridge
+              MVT <span className="text-[var(--color-accent)]">Bridge</span>
             </span>
             <Badge variant="accent" className="hidden sm:inline-flex text-[9.5px] tracking-wider uppercase">
               AI
