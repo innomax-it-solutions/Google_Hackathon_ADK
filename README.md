@@ -7,7 +7,7 @@
 > | **Email** | `admin@healtour.com` |
 > | **Password** | `healtour@123` |
 >
-> **Live app:** https://mvtbridge-web-gmvjmac47q-uc.a.run.app
+> **Live app:** https://innomaxskills.com/MVTBridge/frontend
 > Open the app, click **Login**, and enter the credentials above to access the platform.
 
 ---
