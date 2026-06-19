@@ -23,6 +23,10 @@ def estimate_cost(
     flight_cost_inr: float = 0,
     flight_result_index: str = "",
     flight_trace_id: str = "",
+    hotel_cost_inr: float = 0,
+    hotel_id: str = "",
+    hotel_name: str = "",
+    hotel_nights: int = 0,
 ) -> dict:
     """Estimate the itemised treatment cost for a specific hospital and procedure.
 
@@ -42,6 +46,14 @@ def estimate_cost(
         flight_result_index: Optional. The selected flight's result_index, echoed
             back in "selected_flight" so downstream steps/the frontend can FareQuote it.
         flight_trace_id: Optional. The flight search's trace_id, echoed back likewise.
+        hotel_cost_inr: Optional. The chosen hotel's TOTAL stay cost in INR
+            (per-night x nights x rooms). Default 0 = no accommodation line. When
+            nonzero, an "Accommodation" line is added and folded into the USD and
+            INR totals, exactly like flights.
+        hotel_id: Optional. The chosen hotel's id, echoed in "selected_hotel".
+        hotel_name: Optional. The chosen hotel's name, echoed in "selected_hotel".
+        hotel_nights: Optional. Number of nights the accommodation covers, echoed
+            in "selected_hotel".
 
     Returns:
         A dict with "status", itemised "line_items", USD and INR totals as a
@@ -75,9 +87,11 @@ def estimate_cost(
     inr_min = cost.get("total_inr_min")
     inr_max = cost.get("total_inr_max")
 
+    fx = _usd_to_inr()
+
     includes_flights = bool(flight_cost_inr and flight_cost_inr > 0)
     if includes_flights:
-        flight_usd = round(flight_cost_inr / _usd_to_inr())
+        flight_usd = round(flight_cost_inr / fx)
         flight_inr = round(flight_cost_inr)
         line_items = line_items + [{"label": "Flights", "usd": flight_usd, "inr": flight_inr}]
         # Fold the flight into both ends of each range (a fixed add-on).
@@ -90,10 +104,37 @@ def estimate_cost(
         if inr_max is not None:
             inr_max += flight_inr
 
-    scope_note = (
-        "Treatment package plus the selected flight. Accommodation is estimated separately."
-        if includes_flights
-        else "Treatment package only — international flights and accommodation are estimated separately."
+    includes_hotel = bool(hotel_cost_inr and hotel_cost_inr > 0)
+    if includes_hotel:
+        hotel_usd = round(hotel_cost_inr / fx)
+        hotel_inr = round(hotel_cost_inr)
+        label = "Accommodation" + (f" · ~{hotel_nights} nights" if hotel_nights else "")
+        line_items = line_items + [{"label": label, "usd": hotel_usd, "inr": hotel_inr}]
+        # Fold the accommodation into both ends of each range (a fixed add-on).
+        if usd_min is not None:
+            usd_min += hotel_usd
+        if usd_max is not None:
+            usd_max += hotel_usd
+        if inr_min is not None:
+            inr_min += hotel_inr
+        if inr_max is not None:
+            inr_max += hotel_inr
+
+    # Scope note reflects exactly what is (and isn't) folded into the total.
+    _included = ["Treatment package"]
+    if includes_flights:
+        _included.append("the selected flight")
+    if includes_hotel:
+        _included.append("accommodation")
+    _excluded = []
+    if not includes_flights:
+        _excluded.append("international flights")
+    if not includes_hotel:
+        _excluded.append("accommodation")
+    scope_note = " plus ".join([_included[0]] + _included[1:]) if len(_included) > 1 else _included[0]
+    scope_note += (
+        f". {', '.join(_excluded).capitalize()} estimated separately."
+        if _excluded else ". A consolidated estimate."
     )
 
     result = {
@@ -109,6 +150,7 @@ def estimate_cost(
         "total_inr_min": inr_min,
         "total_inr_max": inr_max,
         "includes_flights": includes_flights,
+        "includes_hotel": includes_hotel,
         "ward_days": cost.get("ward_days"),
         "icu_days": cost.get("icu_days"),
         "currency_note": cost.get("currency_note", "Indicative estimate."),
@@ -122,5 +164,15 @@ def estimate_cost(
             "result_index": flight_result_index,
             "trace_id": flight_trace_id,
             "fare_inr": round(flight_cost_inr),
+        }
+    if includes_hotel:
+        # Carry the chosen hotel so the frontend can highlight it and re-fold a
+        # different choice client-side without another search.
+        result["selected_hotel"] = {
+            "hotel_id": hotel_id,
+            "name": hotel_name,
+            "nights": hotel_nights,
+            "total_inr": round(hotel_cost_inr),
+            "total_usd": round(hotel_cost_inr / fx),
         }
     return result

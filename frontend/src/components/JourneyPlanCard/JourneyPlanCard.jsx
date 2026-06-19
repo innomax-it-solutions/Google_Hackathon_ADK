@@ -71,6 +71,7 @@ export default function JourneyPlanCard({
     buildInitialCache({ list, recommendedId, procedure, intake, propCost: cost, propFlights: flights, flightParams }));
   const costReqRef = useRef(new Set());     // ids whose treatment cost was requested
   const flightReqRef = useRef(new Set());   // ids whose live flights were requested
+  const hotelReqRef = useRef(new Set());    // ids whose nearby hotels were requested
 
   const { sendMessage, isStreaming } = useChatContext();
   const wishlist = useWishlist();
@@ -99,11 +100,12 @@ export default function JourneyPlanCard({
     if (recommendedId && cost) {
       costReqRef.current.add(recommendedId);
       flightReqRef.current.add(recommendedId);
-      setCache((prev) =>
-        prev[recommendedId]?.cost === cost && prev[recommendedId]?.flights === flights
-          ? prev
-          : { ...prev, [recommendedId]: { cost, flights, status: "ready" } }
-      );
+      setCache((prev) => {
+        const cur = prev[recommendedId];
+        if (cur?.hotels) return prev;                          // hotels already folded in — keep them
+        if (cur?.cost === cost && cur?.flights === flights) return prev;
+        return { ...prev, [recommendedId]: { cost, flights, status: "ready" } };
+      });
     }
   }, [recommendedId, cost, flights]);
 
@@ -158,7 +160,10 @@ export default function JourneyPlanCard({
       ctrl.signal,
     )
       .then(({ cost: c, flights: f }) =>
-        setCache((prev) => ({ ...prev, [id]: { cost: c, flights: f, status: "ready" } })),
+        setCache((prev) => {
+          if (prev[id]?.hotels) return prev;                  // hotel-inclusive cost already landed — don't clobber
+          return { ...prev, [id]: { cost: c, flights: f, status: "ready" } };
+        }),
       )
       .catch((err) => {
         console.error("[MedBridge] flights fetch failed:", err);
@@ -171,12 +176,64 @@ export default function JourneyPlanCard({
       .finally(() => clearTimeout(timer));
   }, [procedure, intake, flights, flightParams]);
 
+  // Phase 3 — hotels near the SELECTED hospital only (decision: spare the SerpApi
+  // free quota). Reuses the flight context for the stay dates and carries the
+  // patient budget so the backend folds in the best-rated hotel that still fits.
+  // This call also returns flights, so the result is the hospital's complete plan.
+  const fetchHotels = useCallback((id) => {
+    if (!id || !procedure || hotelReqRef.current.has(id)) return;
+    const ctx = deriveFlightContext(flights, flightParams);
+    if (!ctx.origin_airport || !ctx.departure_date) return;   // no dates yet -> wait
+    hotelReqRef.current.add(id);
+    flightReqRef.current.add(id);                              // hotels fetch also returns flights — don't double-fetch/clobber
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000);
+    fetchHospitalEstimate(
+      {
+        hospital_id: id, procedure, origin_country: intake?.origin_country || "", ...ctx,
+        with_hotels: true,
+        budget_usd: Number.isFinite(intake?.budget_usd) ? intake.budget_usd : 0,
+      },
+      ctrl.signal,
+    )
+      .then(({ cost: c, flights: f, hotels: ho }) =>
+        setCache((prev) => ({
+          ...prev,
+          // Coalesce a null hotels block to a sentinel so the panel stops the
+          // "Pricing your stay…" spinner even when nothing came back (e.g. the
+          // treatment isn't priced, or a date edge case).
+          [id]: { cost: c, flights: f, hotels: ho || { status: "none", options: [] }, selectedHotelId: ho?.selected_hotel_id || null, status: "ready" },
+        })),
+      )
+      .catch((err) => {
+        console.error("[MedBridge] hotels fetch failed:", err);
+        hotelReqRef.current.delete(id);                       // allow a retry
+        setCache((prev) => {                                  // stop the panel spinner; keep any existing cost/flights
+          const cur = prev[id];
+          if (!cur || cur.hotels) return prev;
+          return { ...prev, [id]: { ...cur, hotels: { status: "error", options: [] } } };
+        });
+      })
+      .finally(() => clearTimeout(timer));
+  }, [procedure, intake, flights, flightParams]);
+
   const onSelect = useCallback((id) => {
     if (!id) return;
     setSelectedId(id);
     fetchCost(id);
     fetchFlights(id);
-  }, [fetchCost, fetchFlights]);
+    fetchHotels(id);
+  }, [fetchCost, fetchFlights, fetchHotels]);
+
+  // Switch which hotel is folded into the SELECTED hospital's total. No network:
+  // the options (with prices) are already loaded; applyHotelChoice re-folds locally.
+  const onSelectHotel = useCallback((hospitalId, hotelId) => {
+    setCache((prev) => {
+      const entry = prev[hospitalId];
+      if (!entry) return prev;
+      return { ...prev, [hospitalId]: { ...entry, selectedHotelId: hotelId } };
+    });
+  }, []);
 
   const others = useMemo(
     () => list.filter((h) => h?.hospital_id && h.hospital_id !== recommendedId).map((h) => h.hospital_id),
@@ -194,6 +251,13 @@ export default function JourneyPlanCard({
     if (!procedure || !canSearchFlights) return;
     others.forEach((id) => fetchFlights(id));
   }, [procedure, canSearchFlights, others, fetchFlights]);
+
+  // Fetch nearby hotels for the SELECTED hospital once stay dates are available.
+  // Runs on first load (recommended) and whenever the user switches hospital.
+  useEffect(() => {
+    if (!procedure || !canSearchFlights || !selectedId) return;
+    fetchHotels(selectedId);
+  }, [procedure, canSearchFlights, selectedId, fetchHotels]);
 
   // If the plan has no live flights at all (agent never searched) and streaming
   // has finished, finalize the cost-only hospitals so they stop "searching".
@@ -221,8 +285,15 @@ export default function JourneyPlanCard({
   const sel = selectedId ? cache[selectedId] : null;
   const selStatus = sel?.status;                          // loading | partial | ready | error
   const isRecommendedSelected = selectedId === recommendedId;
-  // Cost (treatment, then treatment+flights) shows as soon as phase 1 lands.
-  const selCost = sel?.cost || (isRecommendedSelected ? cost : null);
+  // Cost (treatment, then +flights, then +hotel) shows as soon as each phase lands.
+  const selCostRaw = sel?.cost || (isRecommendedSelected ? cost : null);
+  const selHotels = sel?.hotels || null;
+  const selHotelId = sel?.selectedHotelId || selHotels?.selected_hotel_id || null;
+  // Re-fold the user's chosen hotel into the cost locally (no extra network call).
+  const selCost = useMemo(
+    () => applyHotelChoice(selCostRaw, selHotels, selHotelId),
+    [selCostRaw, selHotels, selHotelId],
+  );
   const selFlights = selStatus === "ready" ? sel?.flights : (isRecommendedSelected ? flights : null);
   const selectedFlight = pickFlight(selFlights, selCost);
 
@@ -236,6 +307,10 @@ export default function JourneyPlanCard({
   // flight / on error so the panel renders progress or a retry note (not null).
   const costPanelData = selCost || (costFetching ? "loading" : selError ? "error" : null);
   const flightPanelData = selectedFlight || (flightsPending ? "loading" : selError ? "error" : null);
+  // Hotels only make sense once we have stay dates (same gate as flights). While
+  // the search is in flight, selHotels is null -> show progress.
+  const hotelsFetching = canSearchFlights && !selHotels && !selError;
+  const hotelPanelData = selHotels || (hotelsFetching ? "loading" : null);
 
   // Export the CURRENTLY SELECTED hospital's plan (what the user is viewing) to PDF.
   const selectedHospital =
@@ -360,6 +435,13 @@ export default function JourneyPlanCard({
               : flightsPending
                 ? <ProgressSteps steps={[`Searching live flights${selCity ? ` to ${selCity}` : ""}`, "Comparing fares", "Pricing your journey"]} />
                 : <SwapIn k={selectedId}><FlightsBody flight={selectedFlight} cost={selCost} expanded={expanded} reduce={reduce} /></SwapIn>} />
+
+          <Panel {...coord("hotels")} icon={<IconHotel />} title="Hotels nearby" data={hotelPanelData} isLoading={initialSkeleton}
+            render={(expanded) => selError
+              ? <RetryNote onRetry={() => onSelect(selectedId)} />
+              : hotelsFetching
+                ? <ProgressSteps steps={[`Finding hotels near ${selCity || "the hospital"}`, "Checking availability", "Pricing your stay"]} />
+                : <SwapIn k={selectedId}><HotelsBody hotels={selHotels} selectedHotelId={selHotelId} onSelectHotel={(hid) => onSelectHotel(selectedId, hid)} expanded={expanded} reduce={reduce} /></SwapIn>} />
 
           <Panel {...coord("checklist")} icon={<IconChecklist />} title="Travel checklist" data={docs} isLoading={isLoading}
             render={(expanded) => <ChecklistBody docs={docs} expanded={expanded} reduce={reduce} />} />
@@ -1313,6 +1395,127 @@ function FlightDirection({ dir, isReturn, expanded, reduce }) {
   );
 }
 
+// --- Hotels nearby ---------------------------------------------------------
+
+function HotelsBody({ hotels, selectedHotelId, onSelectHotel, expanded, reduce }) {
+  const options = Array.isArray(hotels?.options) ? hotels.options : [];
+
+  if (hotels?.status === "error") {
+    return <p className="text-sm text-[var(--color-text-secondary)]">Couldn't load nearby hotels. Tap the hospital again to retry.</p>;
+  }
+  if (!options.length) {
+    return <p className="text-sm text-[var(--color-text-secondary)]">No nearby hotels found for your dates.</p>;
+  }
+
+  const isPlaceholder = hotels?.status === "placeholder";
+  // Always include the chosen hotel even if it isn't in the top 3 by relevance.
+  const top = options.slice(0, 3);
+  if (selectedHotelId && !top.some((h) => h.hotel_id === selectedHotelId)) {
+    const chosen = options.find((h) => h.hotel_id === selectedHotelId);
+    if (chosen) top[2] = chosen;
+  }
+
+  const Row = (h) => {
+    const sel = h.hotel_id === selectedHotelId;
+    const meta = [
+      Number.isFinite(h.star_rating) ? `${h.star_rating}★ hotel` : null,
+      Number.isFinite(h.rating) ? `${h.rating}${Number.isFinite(h.reviews) ? ` (${fmtReviews(h.reviews)})` : ""}` : null,
+    ].filter(Boolean).join(" · ");
+    return (
+      <button
+        type="button"
+        key={h.hotel_id}
+        onClick={(e) => { e.stopPropagation(); onSelectHotel(h.hotel_id); }}
+        aria-pressed={sel}
+        className={`w-full text-left flex items-start justify-between gap-3 rounded-lg p-2.5 transition-colors ${
+          sel ? "bg-[var(--color-accent-subtle)] ring-2 ring-[var(--color-accent)]" : "hover:bg-[var(--color-surface-2)] ring-1 ring-transparent"
+        }`}
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-1.5 flex-wrap">
+            <span className={expanded ? "" : "truncate"}>{h.name || "Hotel"}</span>
+            {sel && (
+              <span className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-accent)] bg-[var(--color-accent-subtle)] rounded px-1 py-0.5">In your plan</span>
+            )}
+          </p>
+          {meta && <p className="text-xs text-[var(--color-text-secondary)]">{meta}</p>}
+          {h.area && <p className="text-[11px] text-[var(--color-text-tertiary)] truncate">{h.area}</p>}
+          {h.within_budget === false && <p className="text-[11px] text-amber-600">Over accommodation budget</p>}
+        </div>
+        <div className="text-right flex-shrink-0">
+          <p className="text-sm font-extrabold text-[var(--color-text-primary)] tabular-nums leading-tight">
+            {fmtUsd(h.price_per_night_usd)}
+            <span className="text-[10px] font-normal text-[var(--color-text-tertiary)]">/night</span>
+          </p>
+          {Number.isFinite(h.total_stay_usd) && (
+            <p className="text-[11px] text-[var(--color-text-secondary)] tabular-nums">{fmtUsd(h.total_stay_usd)} stay</p>
+          )}
+          {h.within_budget && <span className="text-[10px] text-emerald-600">✓ in budget</span>}
+        </div>
+      </button>
+    );
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[11px] text-[var(--color-text-tertiary)] -mt-1 mb-1">
+        Near {hotels?.near_hospital || "the hospital"}
+        {Number.isFinite(hotels?.nights) ? ` · ~${hotels.nights} nights (pre-op + recovery)` : ""} · tap to pick one.
+      </p>
+      {top.map(Row)}
+
+      <Reveal show={expanded} reduce={reduce}>
+        {isPlaceholder
+          ? <Note tone="amber">Indicative hotels — live availability isn't configured yet.</Note>
+          : hotels?.disclosure
+            ? <p className="text-[10px] text-[var(--color-text-tertiary)] italic pt-1">{hotels.disclosure}</p>
+            : null}
+      </Reveal>
+
+      <MoreHint show={!expanded && (isPlaceholder || !!hotels?.disclosure)}>
+        hover for booking details
+      </MoreHint>
+    </div>
+  );
+}
+
+// Swap the chosen hotel into the cost locally (no refetch): replace the
+// "Accommodation" line item and shift the totals by the price delta. Returns the
+// cost unchanged when there's nothing to re-fold.
+function applyHotelChoice(cost, hotels, hotelId) {
+  if (!cost || !hotels || !hotelId || !cost.selected_hotel) return cost;
+  if (hotelId === cost.selected_hotel.hotel_id) return cost;
+  const opt = (hotels.options || []).find((h) => h.hotel_id === hotelId);
+  if (!opt || !Number.isFinite(opt.total_stay_usd)) return cost;
+
+  const oldUsd = cost.selected_hotel.total_usd;
+  const oldInr = cost.selected_hotel.total_inr;
+  const fx = oldUsd > 0 && Number.isFinite(oldInr) ? oldInr / oldUsd : 86;
+  const newUsd = opt.total_stay_usd;
+  const newInr = Math.round(newUsd * fx);
+  const dUsd = newUsd - (Number.isFinite(oldUsd) ? oldUsd : 0);
+  const dInr = newInr - (Number.isFinite(oldInr) ? oldInr : 0);
+
+  const nights = cost.selected_hotel.nights;
+  const label = "Accommodation" + (nights ? ` · ~${nights} nights` : "");
+  const line_items = (cost.line_items || []).map((li) =>
+    typeof li?.label === "string" && li.label.startsWith("Accommodation")
+      ? { ...li, label, usd: newUsd, inr: newInr }
+      : li,
+  );
+
+  const bump = (n, d) => (Number.isFinite(n) ? n + d : n);
+  return {
+    ...cost,
+    line_items,
+    total_usd_min: bump(cost.total_usd_min, dUsd),
+    total_usd_max: bump(cost.total_usd_max, dUsd),
+    total_inr_min: bump(cost.total_inr_min, dInr),
+    total_inr_max: bump(cost.total_inr_max, dInr),
+    selected_hotel: { ...cost.selected_hotel, hotel_id: opt.hotel_id, name: opt.name, total_usd: newUsd, total_inr: newInr },
+  };
+}
+
 // --- Final estimate (treatment + flights vs budget) ------------------------
 
 function FinalEstimate({ cost, intake, isLoading, flightsPending }) {
@@ -1325,16 +1528,23 @@ function FinalEstimate({ cost, intake, isLoading, flightsPending }) {
   if (!Number.isFinite(totalMin) && !Number.isFinite(totalMax)) return null;
 
   const includesFlights = !!cost.includes_flights;
+  const includesHotel = !!cost.includes_hotel;
   const flightItem = (cost.line_items || []).find((li) => li?.label === "Flights");
   const flightUsd = Number.isFinite(flightItem?.usd) ? flightItem.usd : null;
+  const hotelItem = (cost.line_items || []).find((li) => typeof li?.label === "string" && li.label.startsWith("Accommodation"));
+  const hotelUsd = Number.isFinite(hotelItem?.usd) ? hotelItem.usd : null;
 
   const totalUsd = range(totalMin, totalMax, fmtUsd);
   const totalInr = range(cost.total_inr_min, cost.total_inr_max, fmtInr);
 
-  // Treatment portion = grand total minus the fixed flight add-on.
-  const treatMin = Number.isFinite(totalMin) && flightUsd != null ? totalMin - flightUsd : totalMin;
-  const treatMax = Number.isFinite(totalMax) && flightUsd != null ? totalMax - flightUsd : totalMax;
+  // Treatment portion = grand total minus the fixed flight + hotel add-ons.
+  const addons = (flightUsd || 0) + (hotelUsd || 0);
+  const treatMin = Number.isFinite(totalMin) ? totalMin - addons : totalMin;
+  const treatMax = Number.isFinite(totalMax) ? totalMax - addons : totalMax;
   const treatUsd = range(treatMin, treatMax, fmtUsd);
+
+  const scopeParts = ["treatment", includesFlights && "flights", includesHotel && "hotel"].filter(Boolean);
+  const scopeLabel = scopeParts.join(" + ");
 
   const budget = Number.isFinite(intake?.budget_usd) && intake.budget_usd > 0 ? intake.budget_usd : null;
   const within = budget != null && Number.isFinite(totalMax) && totalMax <= budget;
@@ -1346,7 +1556,7 @@ function FinalEstimate({ cost, intake, isLoading, flightsPending }) {
         <div className="flex items-center gap-1.5">
           <IconWallet className="w-4 h-4" />
           <h3 className="text-[11px] font-bold tracking-wider uppercase opacity-90">
-            Final estimate {includesFlights ? "· treatment + flights" : "· treatment"}
+            Final estimate · {scopeLabel}
           </h3>
         </div>
         {flightsPending ? (
@@ -1373,18 +1583,20 @@ function FinalEstimate({ cost, intake, isLoading, flightsPending }) {
       <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums leading-tight">{totalUsd}</p>
       {totalInr && <p className="text-xs opacity-80 tabular-nums">{totalInr}</p>}
 
-      {includesFlights && (
+      {(includesFlights || includesHotel) && (
         <div className="mt-3 pt-3 border-t border-white/20 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
           <span className="opacity-90">Treatment <b>{treatUsd || "—"}</b></span>
-          <span className="opacity-60">+</span>
-          <span className="opacity-90">Flights <b>{fmtUsd(flightUsd) || "—"}</b></span>
+          {includesFlights && <><span className="opacity-60">+</span><span className="opacity-90">Flights <b>{fmtUsd(flightUsd) || "—"}</b></span></>}
+          {includesHotel && <><span className="opacity-60">+</span><span className="opacity-90">Hotel <b>{fmtUsd(hotelUsd) || "—"}</b></span></>}
         </div>
       )}
 
       <p className="mt-2 text-[11px] opacity-70">
-        {includesFlights
-          ? "Treatment package + selected flight. Accommodation estimated separately."
-          : "Treatment package only — flights and accommodation estimated separately."}
+        {includesHotel
+          ? "Treatment package + selected flight + accommodation for your stay."
+          : includesFlights
+            ? "Treatment package + selected flight. Accommodation estimated separately."
+            : "Treatment package only — flights and accommodation estimated separately."}
       </p>
     </div>
   );
@@ -1466,6 +1678,12 @@ function fmtUsd(n) {
 function fmtInr(n) {
   return typeof n === "number" && isFinite(n) ? `₹${n.toLocaleString("en-IN")}` : null;
 }
+// 12400 -> "12.4k reviews", 850 -> "850 reviews"
+function fmtReviews(n) {
+  if (!Number.isFinite(n)) return "";
+  const v = n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : `${n}`;
+  return `${v} review${n === 1 ? "" : "s"}`;
+}
 function range(min, max, fmt) {
   const a = fmt(min);
   const b = fmt(max);
@@ -1540,6 +1758,13 @@ function IconSparkle({ className = "w-4 h-4" }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 2l1.9 4.6L18.5 8.5 13.9 10.4 12 15l-1.9-4.6L5.5 8.5l4.6-1.9L12 2zM18 14l.9 2.1 2.1.9-2.1.9L18 20l-.9-2.1-2.1-.9 2.1-.9L18 14z" />
+    </svg>
+  );
+}
+function IconHotel({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3M9 9v.01M9 12v.01M9 15v.01" />
     </svg>
   );
 }

@@ -41,7 +41,7 @@ function _estimateKey(p = {}) {
     p.hospital_id || "", p.procedure || "", p.origin_country || "",
     p.origin_airport || "", p.departure_date || "", p.return_date || "",
     p.adults ?? 1, p.children ?? 0, p.infants ?? 0, p.cabin_class ?? 2,
-    !!p.skip_flights,
+    !!p.skip_flights, !!p.with_hotels, p.budget_usd ?? 0,
   ]);
 }
 

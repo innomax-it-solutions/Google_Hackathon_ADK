@@ -40,7 +40,14 @@ function composeClarifyMessage(answers) {
   if (answers.origin_country) parts.push(`I'm travelling from ${COUNTRY_NAME[answers.origin_country] || answers.origin_country}.`);
   if (answers.budget_usd)     parts.push(`My budget is about $${answers.budget_usd}.`);
   if (answers.timeline_weeks) parts.push(`I'd like treatment within ${answers.timeline_weeks} weeks.`);
-  if (answers.interpreter_language) parts.push(`I need an interpreter in ${languageName(answers.interpreter_language)}.`);
+  // Interpreter is optional: if the question was answered (key present) but the
+  // value is empty ("No, English is fine"), say so EXPLICITLY — otherwise the
+  // agent never learns it's settled and re-asks at the end.
+  if ("interpreter_language" in answers) {
+    parts.push(answers.interpreter_language
+      ? `I need an interpreter in ${languageName(answers.interpreter_language)}.`
+      : `I don't need an interpreter — English is fine.`);
+  }
   if (answers.departure_city) parts.push(`I'll be flying from ${answers.departure_city}.`);
   if (answers.travel_date)    parts.push(`I plan to travel ${answers.travel_date}.`);
   if (answers.travellers)     parts.push(`Travelling party: ${answers.travellers} ${answers.travellers === "1" ? "person" : "people"}.`);

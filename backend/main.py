@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import uuid
-from datetime import date as _date
+from datetime import date as _date, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -34,8 +35,9 @@ from pydantic import BaseModel
 from .agent import root_agent
 from .city_airports import iata_for_city
 from .contract import IntakeRequest, hospital_by_id
-from .tools.cost_estimator import estimate_cost
+from .tools.cost_estimator import _usd_to_inr, estimate_cost
 from .tools.flights import flight_search
+from .tools.hotels import hotel_search
 from .transcribe_stream import stream_transcribe
 
 APP_NAME = "medbridge"
@@ -238,6 +240,8 @@ class EstimateHospitalRequest(BaseModel):
     infants: int = 0
     cabin_class: int = 2
     skip_flights: bool = False    # phase 1: return treatment cost instantly, no flight search
+    with_hotels: bool = False     # phase 3 (selected hospital only): search + fold a nearby hotel
+    budget_usd: int = 0           # patient budget, to pick the best-rated hotel that still fits
 
 
 @app.post("/estimate_hospital")
@@ -292,7 +296,133 @@ def estimate_hospital(req: EstimateHospitalRequest):
         flight_result_index=flight_result_index,
         flight_trace_id=flight_trace_id,
     )
-    return {"cost": cost, "flights": flights_payload}
+
+    # Phase 3: for the hospital the user is actively viewing, search hotels near
+    # it and fold the best-rated in-budget option into the SAME cost so the total,
+    # line items and budget badge all include accommodation (like flights).
+    hotels_payload = None
+    if req.with_hotels and req.departure_date:
+        hotels_payload, hotel_args = _hotels_block(req, hospital, cost)
+        # Fold the chosen hotel into the total ONLY when the treatment is priced;
+        # otherwise the hotels still display (for info), just not summed into a cost.
+        if hotel_args and cost.get("status") == "ok":
+            cost = estimate_cost(
+                hospital_id=req.hospital_id,
+                procedure=req.procedure,
+                origin_country=req.origin_country,
+                flight_cost_inr=flight_cost_inr,
+                flight_result_index=flight_result_index,
+                flight_trace_id=flight_trace_id,
+                **hotel_args,
+            )
+
+    return {"cost": cost, "flights": flights_payload, "hotels": hotels_payload}
+
+
+def _hotels_block(req: "EstimateHospitalRequest", hospital: dict, cost: dict):
+    """Search hotels near the hospital, price each for the derived stay length, and
+    pick the best-rated one that still fits the leftover budget.
+
+    Returns (hotels_block, hotel_args): the block the frontend renders, and the
+    kwargs to re-run estimate_cost with the chosen hotel folded in. hotel_args is
+    None when no usable option was found (the block still carries the disclosure)."""
+    # Nights are DERIVED from the plan: pre-op prep + inpatient stay + early
+    # recovery before fit-to-fly. Shown transparently in the UI.
+    icu = cost.get("icu_days") if isinstance(cost.get("icu_days"), int) else 0
+    ward = cost.get("ward_days") if isinstance(cost.get("ward_days"), int) else 0
+    nights = max(3, 2 + icu + ward + 5)
+
+    adults = max(1, req.adults)
+    rooms = max(1, math.ceil(adults / 2))
+
+    try:
+        checkin = req.departure_date
+        checkout = (_date.fromisoformat(checkin) + timedelta(days=nights)).isoformat()
+    except ValueError:
+        return None, None
+
+    fx = _usd_to_inr()
+    # Leftover budget for accommodation = budget minus everything already in the
+    # total (treatment + flights). None when no budget was given.
+    remaining = None
+    if req.budget_usd and isinstance(cost.get("total_usd_max"), (int, float)):
+        remaining = req.budget_usd - cost["total_usd_max"]
+
+    # One real-hotels-only search (no star-class filter — that made Google drop
+    # legitimate luxury hotels). Budget shapes the CHOICE below, not the query, so
+    # the same cached result set serves every budget for this hospital + dates.
+    hs = hotel_search(
+        city=hospital.get("city", ""),
+        checkin_date=checkin,
+        checkout_date=checkout,
+        rooms=rooms,
+        adults=adults,
+        near_hospital=hospital.get("name", ""),
+        hotels_only=True,
+    )
+
+    options = []
+    for h in hs.get("results", []):
+        ppn = h.get("price_per_night_usd")
+        if not isinstance(ppn, (int, float)) or ppn <= 0:
+            continue
+        total_stay_usd = round(ppn * nights * rooms)
+        options.append({
+            **h,
+            "total_stay_usd": total_stay_usd,
+            "within_budget": (remaining is None) or (total_stay_usd <= remaining),
+        })
+
+    block = {
+        "status": hs.get("status"),
+        "disclosure": hs.get("disclosure"),
+        "near_hospital": hospital.get("name", ""),
+        "city": hospital.get("city", ""),
+        "nights": nights,
+        "rooms": rooms,
+        "checkin_date": checkin,
+        "checkout_date": checkout,
+        "options": options,
+        "selected_hotel_id": None,
+    }
+    if not options:
+        return block, None
+
+    chosen = _pick_hotel(options)
+    block["selected_hotel_id"] = chosen.get("hotel_id")
+    # Lead the card with the chosen hotel, then the rest ranked by quality.
+    rest = sorted(
+        (o for o in options if o is not chosen),
+        key=lambda o: (o["within_budget"], o.get("star_rating") or 0, o.get("rating") or 0, o.get("reviews") or 0),
+        reverse=True,
+    )
+    block["options"] = [chosen] + rest
+
+    hotel_args = {
+        "hotel_cost_inr": chosen["total_stay_usd"] * fx,
+        "hotel_id": chosen.get("hotel_id") or "",
+        "hotel_name": chosen.get("name") or "",
+        "hotel_nights": nights,
+    }
+    return block, hotel_args
+
+
+def _pick_hotel(options: list[dict]) -> dict:
+    """Premium-first choice. Among hotels that fit the budget, prefer well-rated
+    4-5 star hotels and, within those, the one that uses most of the allowance
+    (priciest stay) for the best experience — guest rating breaks ties. So a bigger
+    budget visibly buys a nicer, pricier hotel. If no premium option fits, take the
+    best-rated affordable hotel; if nothing fits at all, the cheapest stay."""
+    affordable = [o for o in options if o["within_budget"]]
+    premium = [
+        o for o in affordable
+        if (o.get("star_rating") or 0) >= 4 and (o.get("rating") is None or o.get("rating") >= 4.0)
+    ]
+    if premium:
+        return max(premium, key=lambda o: (o["total_stay_usd"], o.get("rating") or 0))
+    if affordable:
+        return max(affordable, key=lambda o: (o.get("star_rating") or 0, o.get("rating") or 0, o.get("reviews") or 0))
+    return min(options, key=lambda o: o["total_stay_usd"])
 
 
 @app.get("/healthz")

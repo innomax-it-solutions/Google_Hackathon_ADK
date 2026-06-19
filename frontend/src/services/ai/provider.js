@@ -41,9 +41,9 @@ export function streamIntake(intake, handlers) {
 /**
  * Re-cost a single hospital (plan + cost + flights) without the agent.
  * @param {{hospital_id, procedure, origin_country, origin_airport, departure_date,
- *   return_date?, adults?, children?, infants?, cabin_class?}} params
+ *   return_date?, adults?, children?, infants?, cabin_class?, with_hotels?, budget_usd?}} params
  * @param {AbortSignal} [signal]
- * @returns {Promise<{cost: object, flights: object|null}>}
+ * @returns {Promise<{cost: object, flights: object|null, hotels?: object|null}>}
  */
 export async function estimateHospital(params, signal) {
   const res = await fetch(`${BASE_URL}/estimate_hospital`, {
