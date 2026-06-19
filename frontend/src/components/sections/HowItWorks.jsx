@@ -131,7 +131,7 @@ export default function HowItWorks() {
               How Your <span className="text-gradient">Medical Journey</span> Works
             </>
           }
-          subtitle="MVT Bridge coordinates every step — from hospital matching to travel and recovery."
+          subtitle="Healtour coordinates every step — from hospital matching to travel and recovery."
         />
 
         {/* ── Desktop: two-column staggered roadmap ──────────────────────── */}

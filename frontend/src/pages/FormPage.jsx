@@ -267,7 +267,7 @@ export default function FormPage() {
               Find your hospital
             </h1>
             <p className="mt-2 text-[14px] text-[var(--color-text-secondary)] max-w-lg mx-auto">
-              Tell us your condition, country and budget — MedBridge matches the right hospital,
+              Tell us your condition, country and budget — Healtour matches the right hospital,
               estimates costs, and prepares your visa checklist.
             </p>
           </div>

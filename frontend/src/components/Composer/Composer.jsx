@@ -373,7 +373,7 @@ export default function Composer() {
           <kbd className="px-1.5 py-0.5 rounded-md text-[10px] font-sans bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-tertiary)]">
             Shift+Enter
           </kbd>{" "}
-          for new line · MedBridge may make mistakes
+          for new line · Healtour may make mistakes
         </p>
       </div>
     </div>

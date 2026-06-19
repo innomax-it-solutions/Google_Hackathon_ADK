@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { User, Mail, Phone, Lock, ArrowRight, Loader2, ChevronDown } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
 import AuthField from "../components/auth/AuthField";
+import Seo from "../components/seo/Seo";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ui/Toast";
 import { COUNTRIES } from "../constants/countries";
@@ -132,9 +133,11 @@ export default function Register() {
   const strength = passwordStrength(values.password);
 
   return (
+    <>
+      <Seo title="Create Account" path="/register" noindex />
     <AuthLayout
       title="Create your account"
-      subtitle="Set up your MVT Bridge workspace to start planning your medical journey."
+      subtitle="Set up your Healtour workspace to start planning your medical journey."
       footer={
         <>
           Already have an account?{" "}
@@ -257,5 +260,6 @@ export default function Register() {
         </p>
       </form>
     </AuthLayout>
+    </>
   );
 }

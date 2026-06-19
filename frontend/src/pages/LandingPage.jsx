@@ -1,6 +1,9 @@
 import { Suspense, lazy } from "react";
 import Navbar from "../components/layout/Navbar";
+import Seo from "../components/seo/Seo";
+import { organizationSchema, websiteSchema } from "../seo/schema";
 import Hero from "../components/sections/Hero";
+import TrustBar from "../components/sections/TrustBar";
 import ScrollProgress from "../components/ui/ScrollProgress";
 import BackToTop from "../components/ui/BackToTop";
 import CursorGlow from "../components/ui/CursorGlow";
@@ -10,10 +13,12 @@ import SectionSkeleton from "../components/ui/SectionSkeleton";
 // Above-the-fold (Navbar + Hero) load eagerly; the rest are code-split and
 // fetched as they approach the viewport to keep first paint fast.
 const TrustedHospitals = lazy(() => import("../components/sections/TrustedHospitals"));
+const PartnerLogos = lazy(() => import("../components/sections/PartnerLogos"));
+const Accreditation = lazy(() => import("../components/sections/Accreditation"));
 const HowItWorks = lazy(() => import("../components/sections/HowItWorks"));
 const AIFeatures = lazy(() => import("../components/sections/AIFeatures"));
 const JourneyPreview = lazy(() => import("../components/sections/JourneyPreview"));
-const WhyMedBridge = lazy(() => import("../components/sections/WhyMedBridge"));
+const WhyHealtour = lazy(() => import("../components/sections/WhyHealtour"));
 const Testimonials = lazy(() => import("../components/sections/Testimonials"));
 const CTABanner = lazy(() => import("../components/sections/CTABanner"));
 const AboutHealtour = lazy(() => import("../components/sections/AboutHealtour"));
@@ -22,6 +27,8 @@ const Footer = lazy(() => import("../components/layout/Footer"));
 export default function LandingPage() {
   return (
     <div className="no-x-overflow min-h-screen bg-canvas">
+      <Seo path="/" jsonLd={[organizationSchema(), websiteSchema()]} />
+
       {/* Skip link for keyboard users */}
       <a
         href="#main"
@@ -37,10 +44,16 @@ export default function LandingPage() {
       <main id="main">
         <Hero />
 
+        <TrustBar />
+
         <SectionDivider variant="gradient" className="py-2" />
 
         <Suspense fallback={<SectionSkeleton cards={3} />}>
           <TrustedHospitals />
+        </Suspense>
+
+        <Suspense fallback={<SectionSkeleton cards={6} />}>
+          <PartnerLogos />
         </Suspense>
 
         <Suspense fallback={<SectionSkeleton cards={4} />}>
@@ -59,8 +72,12 @@ export default function LandingPage() {
           <AboutHealtour />
         </Suspense>
 
+        <Suspense fallback={<SectionSkeleton cards={4} />}>
+          <Accreditation />
+        </Suspense>
+
         <Suspense fallback={<SectionSkeleton cards={2} />}>
-          <WhyMedBridge />
+          <WhyHealtour />
         </Suspense>
 
         <Suspense fallback={<SectionSkeleton cards={4} />}>

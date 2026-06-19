@@ -60,13 +60,13 @@ export default function Header() {
 
   function exportConversation() {
     const text = messages
-      .map(m => `${m.role === "user" ? "You" : "MedBridge"}: ${m.content}`)
+      .map(m => `${m.role === "user" ? "You" : "Healtour"}: ${m.content}`)
       .join("\n\n");
     const blob = new Blob([text], { type: "text/plain" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href     = url;
-    a.download = "medbridge-conversation.txt";
+    a.download = "healtour-conversation.txt";
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Conversation exported", variant: "success" });
@@ -241,7 +241,7 @@ export default function Header() {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>MedBridge</DropdownMenuLabel>
+              <DropdownMenuLabel>Healtour</DropdownMenuLabel>
               <DropdownMenuSeparator />
 
               {hasMessages && (

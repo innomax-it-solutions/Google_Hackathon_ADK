@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /chat
+Disallow: /form
+Disallow: /forms
+Disallow: /wishlist
+
+Sitemap: https://www.healtour.com/sitemap.xml

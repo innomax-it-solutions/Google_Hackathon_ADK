@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// MVT Bridge — static landing page content.
+// Healtour — static landing page content.
 // All data here is dummy/illustrative for the marketing UI only. No backend,
 // no API calls. Swap these arrays for real data later without touching the UI.
 // ---------------------------------------------------------------------------
@@ -14,7 +14,7 @@ export const NAV_LINKS = [
 
 export const ABOUT_HEALTOUR = {
   description:
-    "MVT Bridge is an AI-powered medical tourism platform that simplifies international healthcare journeys by helping patients connect with trusted hospitals, transparent treatment costs, and end-to-end travel coordination.",
+    "Healtour is an AI-powered medical tourism platform that simplifies international healthcare journeys by helping patients connect with trusted hospitals, transparent treatment costs, and end-to-end travel coordination.",
   ecosystem: "Your end-to-end partner for Medical Value Tourism.",
   highlights: [
     {
@@ -279,7 +279,7 @@ export const COMPARISON = {
     ],
   },
   healtour: {
-    title: "MVT Bridge AI",
+    title: "Healtour AI",
     points: [
       "A complete journey plan in seconds",
       "Itemised, transparent cost estimates upfront",
@@ -328,7 +328,7 @@ export const TESTIMONIALS = [
     initials: "AO",
     color: "from-blue-500 to-indigo-500",
     quote:
-      "MVT Bridge planned everything — hospital, costs, even my visa checklist — in one go. I arrived in India knowing exactly what to expect.",
+      "Healtour planned everything — hospital, costs, even my visa checklist — in one go. I arrived in India knowing exactly what to expect.",
   },
   {
     name: "Daniel Mwangi",
@@ -355,7 +355,7 @@ export const TESTIMONIALS = [
     initials: "JC",
     color: "from-amber-500 to-orange-500",
     quote:
-      "World-class care at a fraction of the cost, with zero guesswork. MVT Bridge handled the complexity so I could focus on recovery.",
+      "World-class care at a fraction of the cost, with zero guesswork. Healtour handled the complexity so I could focus on recovery.",
   },
 ];
 
