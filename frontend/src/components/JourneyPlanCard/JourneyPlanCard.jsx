@@ -53,6 +53,8 @@ export default function JourneyPlanCard({
   flightParams,
   summary,
   isLoading,
+  hotels: propHotels = null,          // saved-plan rehydration (wishlist): seed hotels…
+  selectedHotelId: propSelectedHotelId = null,  // …and the chosen hotel, so no refetch
 }) {
   const list = (Array.isArray(hospital?.hospitals) ? hospital.hospitals : []).slice(0, 3);
   // The costed hospital is the recommended one; otherwise the top-ranked match.
@@ -68,10 +70,11 @@ export default function JourneyPlanCard({
   // Seed from props (recommended) + the session estimate cache (others), so a
   // remount after navigation/refresh shows cached plans instantly with no refetch.
   const [cache, setCache] = useState(() =>
-    buildInitialCache({ list, recommendedId, procedure, intake, propCost: cost, propFlights: flights, flightParams }));
+    buildInitialCache({ list, recommendedId, procedure, intake, propCost: cost, propFlights: flights, flightParams, propHotels, propSelectedHotelId }));
   const costReqRef = useRef(new Set());     // ids whose treatment cost was requested
   const flightReqRef = useRef(new Set());   // ids whose live flights were requested
   const hotelReqRef = useRef(new Set());    // ids whose nearby hotels were requested
+  const cacheRef = useRef(null);            // latest cache, for reads inside callbacks without re-creating them
 
   const { sendMessage, isStreaming } = useChatContext();
   const wishlist = useWishlist();
@@ -94,6 +97,10 @@ export default function JourneyPlanCard({
   // recommended hospital's search; it only exists once that search has returned.
   const flightCtx = deriveFlightContext(flights, flightParams);
   const canSearchFlights = !!(flightCtx.origin_airport && flightCtx.departure_date);
+
+  // Keep a ref to the latest cache so callbacks can read it without listing
+  // `cache` as a dependency (which would re-create them on every update).
+  cacheRef.current = cache;
 
   // Seed the cache with the recommended hospital's props as they arrive.
   useEffect(() => {
@@ -182,10 +189,17 @@ export default function JourneyPlanCard({
   // This call also returns flights, so the result is the hospital's complete plan.
   const fetchHotels = useCallback((id) => {
     if (!id || !procedure || hotelReqRef.current.has(id)) return;
+    if (cacheRef.current?.[id]?.hotels) { hotelReqRef.current.add(id); return; }  // already have hotels (e.g. seeded from a saved plan)
     const ctx = deriveFlightContext(flights, flightParams);
     if (!ctx.origin_airport || !ctx.departure_date) return;   // no dates yet -> wait
     hotelReqRef.current.add(id);
     flightReqRef.current.add(id);                              // hotels fetch also returns flights — don't double-fetch/clobber
+    // Reuse a fare the card already fetched (if any) so the backend skips the
+    // redundant live flight search and the panel returns faster.
+    const known = cacheRef.current?.[id]?.cost?.selected_flight;
+    const reuseFlight = known?.fare_inr
+      ? { flight_fare_inr: known.fare_inr, flight_result_index: known.result_index || "", flight_trace_id: known.trace_id || "", skip_flights: true }
+      : {};
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 30000);
     fetchHospitalEstimate(
@@ -193,6 +207,7 @@ export default function JourneyPlanCard({
         hospital_id: id, procedure, origin_country: intake?.origin_country || "", ...ctx,
         with_hotels: true,
         budget_usd: Number.isFinite(intake?.budget_usd) ? intake.budget_usd : 0,
+        ...reuseFlight,
       },
       ctrl.signal,
     )
@@ -200,9 +215,9 @@ export default function JourneyPlanCard({
         setCache((prev) => ({
           ...prev,
           // Coalesce a null hotels block to a sentinel so the panel stops the
-          // "Pricing your stay…" spinner even when nothing came back (e.g. the
-          // treatment isn't priced, or a date edge case).
-          [id]: { cost: c, flights: f, hotels: ho || { status: "none", options: [] }, selectedHotelId: ho?.selected_hotel_id || null, status: "ready" },
+          // "Pricing your stay…" spinner even when nothing came back. Preserve
+          // already-fetched flights if this response skipped the flight search.
+          [id]: { cost: c, flights: f || prev[id]?.flights || null, hotels: ho || { status: "none", options: [] }, selectedHotelId: ho?.selected_hotel_id || null, status: "ready" },
         })),
       )
       .catch((err) => {
@@ -335,6 +350,7 @@ export default function JourneyPlanCard({
         cost: selCost,
         flight: selectedFlight,
         flights: selFlights,
+        hotels: selHotels,
         docs,
         booking,
         summary,
@@ -348,7 +364,7 @@ export default function JourneyPlanCard({
       setPdfBusy(false);
     }
   }, [intake, procedureLabel, selectedHospital, selectedId, recommendedId, hospital,
-      selCost, selectedFlight, selFlights, docs, booking, summary, cache, list]);
+      selCost, selectedFlight, selFlights, selHotels, docs, booking, summary, cache, list]);
 
   // --- Wishlist: save the SELECTED hospital's plan so it can be re-viewed,
   // chatted about, or booked later from /wishlist. -----------------------------
@@ -371,6 +387,9 @@ export default function JourneyPlanCard({
         flights: selFlights,
         flightParams,
         summary,
+        // Persist the chosen hotel so the saved plan re-renders it without a refetch.
+        hotels: selHotels,
+        selectedHotelId: selHotelId,
       },
       // Small derived fields for the list row + chat/booking seed messages.
       preview: {
@@ -390,7 +409,7 @@ export default function JourneyPlanCard({
       variant: result === "saved" ? "success" : "default",
     });
   }, [wishlist, wlKey, selectedHospital, selCost, intake, hospital, docs, booking,
-      selFlights, flightParams, summary, procedureLabel, toast]);
+      selFlights, flightParams, summary, procedureLabel, toast, selHotels, selHotelId]);
 
   return (
     <motion.div
@@ -528,10 +547,14 @@ function pickFlight(flights, cost) {
 // props, plus any OTHER hospital whose estimate is already in the session cache
 // (from a previous view this session). This is what stops a nav-away/refresh from
 // re-fetching everything — cached hospitals start "ready", never re-spinner.
-function buildInitialCache({ list, recommendedId, procedure, intake, propCost, propFlights, flightParams }) {
+function buildInitialCache({ list, recommendedId, procedure, intake, propCost, propFlights, flightParams, propHotels, propSelectedHotelId }) {
   const init = {};
   if (recommendedId && propCost) {
-    init[recommendedId] = { cost: propCost, flights: propFlights, status: "ready" };
+    init[recommendedId] = {
+      cost: propCost, flights: propFlights, status: "ready",
+      // Seed hotels from a saved plan so the panel shows them without a refetch.
+      ...(propHotels ? { hotels: propHotels, selectedHotelId: propSelectedHotelId || propHotels?.selected_hotel_id || null } : {}),
+    };
   }
   if (!procedure || !Array.isArray(list)) return init;
   const ctx = deriveFlightContext(propFlights, flightParams);
@@ -1422,37 +1445,62 @@ function HotelsBody({ hotels, selectedHotelId, onSelectHotel, expanded, reduce }
       Number.isFinite(h.rating) ? `${h.rating}${Number.isFinite(h.reviews) ? ` (${fmtReviews(h.reviews)})` : ""}` : null,
     ].filter(Boolean).join(" · ");
     return (
-      <button
-        type="button"
+      <div
         key={h.hotel_id}
-        onClick={(e) => { e.stopPropagation(); onSelectHotel(h.hotel_id); }}
-        aria-pressed={sel}
-        className={`w-full text-left flex items-start justify-between gap-3 rounded-lg p-2.5 transition-colors ${
+        className={`rounded-lg p-2.5 transition-colors ${
           sel ? "bg-[var(--color-accent-subtle)] ring-2 ring-[var(--color-accent)]" : "hover:bg-[var(--color-surface-2)] ring-1 ring-transparent"
         }`}
       >
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-1.5 flex-wrap">
-            <span className={expanded ? "" : "truncate"}>{h.name || "Hotel"}</span>
-            {sel && (
-              <span className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-accent)] bg-[var(--color-accent-subtle)] rounded px-1 py-0.5">In your plan</span>
-            )}
-          </p>
-          {meta && <p className="text-xs text-[var(--color-text-secondary)]">{meta}</p>}
-          {h.area && <p className="text-[11px] text-[var(--color-text-tertiary)] truncate">{h.area}</p>}
-          {h.within_budget === false && <p className="text-[11px] text-amber-600">Over accommodation budget</p>}
-        </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-sm font-extrabold text-[var(--color-text-primary)] tabular-nums leading-tight">
-            {fmtUsd(h.price_per_night_usd)}
-            <span className="text-[10px] font-normal text-[var(--color-text-tertiary)]">/night</span>
-          </p>
-          {Number.isFinite(h.total_stay_usd) && (
-            <p className="text-[11px] text-[var(--color-text-secondary)] tabular-nums">{fmtUsd(h.total_stay_usd)} stay</p>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onSelectHotel(h.hotel_id); }}
+          aria-pressed={sel}
+          className="w-full text-left flex items-start gap-3"
+        >
+          {h.thumbnail && (
+            <img
+              src={h.thumbnail}
+              alt=""
+              loading="lazy"
+              className="w-14 h-14 rounded-md object-cover flex-shrink-0 bg-[var(--color-surface-2)]"
+            />
           )}
-          {h.within_budget && <span className="text-[10px] text-emerald-600">✓ in budget</span>}
-        </div>
-      </button>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-1.5 flex-wrap">
+              <span className={expanded ? "" : "truncate"}>{h.name || "Hotel"}</span>
+              {sel && (
+                <span className="text-[9px] font-bold uppercase tracking-wide text-[var(--color-accent)] bg-[var(--color-accent-subtle)] rounded px-1 py-0.5">In your plan</span>
+              )}
+            </p>
+            {meta && <p className="text-xs text-[var(--color-text-secondary)]">{meta}</p>}
+            {h.area && <p className="text-[11px] text-[var(--color-text-tertiary)] truncate">{h.area}</p>}
+            {h.within_budget === false && <p className="text-[11px] text-amber-600">Over accommodation budget</p>}
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-sm font-extrabold text-[var(--color-text-primary)] tabular-nums leading-tight">
+              {fmtUsd(h.price_per_night_usd)}
+              <span className="text-[10px] font-normal text-[var(--color-text-tertiary)]">/night</span>
+            </p>
+            {Number.isFinite(h.total_stay_usd) && (
+              <p className="text-[11px] text-[var(--color-text-secondary)] tabular-nums">{fmtUsd(h.total_stay_usd)} stay</p>
+            )}
+            {h.within_budget && <span className="text-[10px] text-emerald-600">✓ in budget</span>}
+          </div>
+        </button>
+        {h.link && (
+          <div className="flex justify-end pt-1.5">
+            <a
+              href={h.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
+            >
+              View / Book <IconExternal className="w-3 h-3" />
+            </a>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -1758,6 +1806,13 @@ function IconSparkle({ className = "w-4 h-4" }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 2l1.9 4.6L18.5 8.5 13.9 10.4 12 15l-1.9-4.6L5.5 8.5l4.6-1.9L12 2zM18 14l.9 2.1 2.1.9-2.1.9L18 20l-.9-2.1-2.1-.9 2.1-.9L18 14z" />
+    </svg>
+  );
+}
+function IconExternal({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5h5v5m0-5L10 14M9 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-3" />
     </svg>
   );
 }

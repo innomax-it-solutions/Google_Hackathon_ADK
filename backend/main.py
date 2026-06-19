@@ -242,6 +242,11 @@ class EstimateHospitalRequest(BaseModel):
     skip_flights: bool = False    # phase 1: return treatment cost instantly, no flight search
     with_hotels: bool = False     # phase 3 (selected hospital only): search + fold a nearby hotel
     budget_usd: int = 0           # patient budget, to pick the best-rated hotel that still fits
+    # Reuse a fare the card already fetched so the hotels call skips the redundant
+    # live flight search. When flight_fare_inr > 0, no flight_search runs.
+    flight_fare_inr: float = 0
+    flight_result_index: str = ""
+    flight_trace_id: str = ""
 
 
 @app.post("/estimate_hospital")
@@ -263,9 +268,16 @@ def estimate_hospital(req: EstimateHospitalRequest):
     flight_result_index = ""
     flight_trace_id = ""
 
+    if req.flight_fare_inr and req.flight_fare_inr > 0:
+        # Reuse the fare the card already fetched — no need to search flights again.
+        flight_cost_inr = req.flight_fare_inr
+        flight_result_index = req.flight_result_index
+        flight_trace_id = req.flight_trace_id
+
     dest = iata_for_city(hospital.get("city"))
     can_search = bool(
         not req.skip_flights
+        and not flight_cost_inr
         and dest and req.origin_airport and req.departure_date and req.procedure
     )
     if can_search:

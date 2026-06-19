@@ -60,6 +60,7 @@ export function buildJourneyPlanPdf(plan = {}) {
   drawCostSection(ctx, plan);
   drawFinalEstimate(ctx, plan);
   drawFlightsSection(ctx, plan);
+  drawHotelSection(ctx, plan);
   drawChecklistSection(ctx, plan);
   drawTimelineSection(ctx, plan);
   drawCompareSection(ctx, plan);
@@ -269,20 +270,26 @@ function drawFinalEstimate({ doc }, plan) {
   if (!Number.isFinite(totalMin) && !Number.isFinite(totalMax)) return;
 
   const includesFlights = !!cost.includes_flights;
+  const includesHotel = !!cost.includes_hotel;
   const flightItem = (cost.line_items || []).find((li) => li?.label === "Flights");
   const flightUsd = Number.isFinite(flightItem?.usd) ? flightItem.usd : null;
+  const hotelItem = (cost.line_items || []).find((li) => typeof li?.label === "string" && li.label.startsWith("Accommodation"));
+  const hotelUsd = Number.isFinite(hotelItem?.usd) ? hotelItem.usd : null;
   const totalUsd = range(totalMin, totalMax, fmtUsd);
   const totalInr = range(cost.total_inr_min, cost.total_inr_max, fmtInr);
 
-  const treatMin = Number.isFinite(totalMin) && flightUsd != null ? totalMin - flightUsd : totalMin;
-  const treatMax = Number.isFinite(totalMax) && flightUsd != null ? totalMax - flightUsd : totalMax;
+  const addons = (flightUsd || 0) + (hotelUsd || 0);
+  const treatMin = Number.isFinite(totalMin) ? totalMin - addons : totalMin;
+  const treatMax = Number.isFinite(totalMax) ? totalMax - addons : totalMax;
   const treatUsd = range(treatMin, treatMax, fmtUsd);
+  const hasAddons = includesFlights || includesHotel;
+  const scopeLabel = ["TREATMENT", includesFlights && "FLIGHTS", includesHotel && "HOTEL"].filter(Boolean).join(" + ");
 
   const budget = Number.isFinite(plan?.intake?.budget_usd) && plan.intake.budget_usd > 0 ? plan.intake.budget_usd : null;
   const within = budget != null && Number.isFinite(totalMax) && totalMax <= budget;
   const overBy = budget != null && Number.isFinite(totalMax) && totalMax > budget ? totalMax - budget : 0;
 
-  const boxH = includesFlights ? 86 : 70;
+  const boxH = hasAddons ? 86 : 70;
   ensureSpace(doc, boxH + 12);
   const y = curY(doc);
 
@@ -292,7 +299,7 @@ function drawFinalEstimate({ doc }, plan) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(219, 222, 252);
-  doc.text(`FINAL ESTIMATE  ·  ${includesFlights ? "TREATMENT + FLIGHTS" : "TREATMENT"}`, MARGIN + 16, y + 20);
+  doc.text(`FINAL ESTIMATE  ·  ${scopeLabel}`, MARGIN + 16, y + 20);
 
   // Budget chip (right)
   let chip = "Best-value plan";
@@ -319,11 +326,14 @@ function drawFinalEstimate({ doc }, plan) {
     doc.text(totalInr, MARGIN + 16, y + 60);
   }
 
-  if (includesFlights) {
+  if (hasAddons) {
+    const bits = [`Treatment ${treatUsd || "—"}`];
+    if (includesFlights) bits.push(`Flights ${fmtUsd(flightUsd) || "—"}`);
+    if (includesHotel) bits.push(`Hotel ${fmtUsd(hotelUsd) || "—"}`);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(219, 222, 252);
-    doc.text(`Treatment ${treatUsd || "—"}   +   Flights ${fmtUsd(flightUsd) || "—"}`, MARGIN + 16, y + boxH - 12);
+    doc.text(bits.join("   +   "), MARGIN + 16, y + boxH - 12);
   } else {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
@@ -332,6 +342,68 @@ function drawFinalEstimate({ doc }, plan) {
   }
 
   ctxSetY(doc, y + boxH + 18);
+}
+
+// ---------------------------------------------------------------------------
+// Accommodation (chosen hotel + nearby alternatives)
+// ---------------------------------------------------------------------------
+
+function drawHotelSection({ doc }, plan) {
+  const hotels = plan?.hotels;
+  const chosen = plan?.cost?.selected_hotel;
+  const options = Array.isArray(hotels?.options) ? hotels.options.slice(0, 3) : [];
+  if (!options.length && !chosen) return;
+
+  sectionHeading(doc, "Accommodation");
+
+  const near = hotels?.near_hospital ? `Near ${hotels.near_hospital}` : "";
+  const nights = Number.isFinite(hotels?.nights) ? `~${hotels.nights} nights (pre-op + recovery)` : "";
+  const intro = [near, nights].filter(Boolean).join("  ·  ");
+  if (intro) ctxSetY(doc, paragraph(doc, curY(doc), intro, { size: 8.5, color: FAINT }) + 4);
+
+  const selId = hotels?.selected_hotel_id || chosen?.hotel_id;
+  const rows = options.length
+    ? options
+    : [{ name: chosen.name, total_stay_usd: chosen.total_usd, hotel_id: chosen.hotel_id }];
+
+  rows.forEach((h) => {
+    ensureSpace(doc, 28);
+    const y = curY(doc);
+    const isSel = h.hotel_id === selId;
+    doc.setFillColor(...(isSel ? [238, 242, 255] : PANEL_BG));
+    doc.setDrawColor(...(isSel ? ACCENT : HAIRLINE));
+    doc.roundedRect(MARGIN, y, CONTENT_W, 24, 5, 5, "FD");
+
+    const meta = [
+      Number.isFinite(h.star_rating) ? `${h.star_rating}★` : null,
+      Number.isFinite(h.rating) ? `${h.rating}` : null,
+    ].filter(Boolean).join("  ·  ");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...INK);
+    doc.text(`${h.name || "Hotel"}${isSel ? "  (in your plan)" : ""}`, MARGIN + 10, y + 11);
+    if (meta) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...MUTED);
+      doc.text(meta, MARGIN + 10, y + 19);
+    }
+
+    const price = Number.isFinite(h.total_stay_usd) ? `${fmtUsd(h.total_stay_usd)} stay`
+      : Number.isFinite(h.price_per_night_usd) ? `${fmtUsd(h.price_per_night_usd)}/night` : "";
+    if (price) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...INK);
+      const w = doc.getTextWidth(price);
+      doc.text(price, PAGE_W - MARGIN - 10 - w, y + 15);
+    }
+    ctxSetY(doc, y + 30);
+  });
+
+  if (hotels?.status === "placeholder") {
+    ctxSetY(doc, note(doc, curY(doc), "Indicative hotels — live availability not configured.", AMBER) + 8);
+  }
 }
 
 // ---------------------------------------------------------------------------
