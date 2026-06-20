@@ -16,6 +16,7 @@ import Icon from "../components/ui/Icon";
 import SectionSkeleton from "../components/ui/SectionSkeleton";
 import Seo from "../components/seo/Seo";
 import { medicalProcedureSchema, breadcrumbSchema } from "../seo/schema";
+import MediaImage from "../components/content/MediaImage";
 import TreatmentCard from "../components/treatments/TreatmentCard";
 import TreatmentFaq from "../components/treatments/TreatmentFaq";
 import {
@@ -118,6 +119,7 @@ export default function TreatmentDetailPage() {
   }
 
   const t = treatment;
+  const photo = t.photo ? `/uploads/${t.photo}` : null;
   const duration = durationLabel(t);
   const stay = stayLabel(t);
   const faqs = buildFaqs(t);
@@ -208,6 +210,11 @@ export default function TreatmentDetailPage() {
           <div className="grid gap-10 lg:grid-cols-[1fr_20rem] lg:gap-14">
             {/* Main */}
             <div className="min-w-0">
+              {photo && (
+                <div className="mb-8 aspect-[16/9] overflow-hidden rounded-3xl">
+                  <MediaImage src={photo} alt={t.name} gradient={deptGradient(t.department)} icon={deptIcon(t.department)} label={t.name} />
+                </div>
+              )}
               {bodyHtml ? (
                 <div
                   className="max-w-none text-[15px] leading-relaxed text-ink-muted [&_a]:text-brand-600 [&_a]:underline [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-ink [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-ink [&_li]:mb-1.5 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_strong]:font-semibold [&_strong]:text-ink [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"

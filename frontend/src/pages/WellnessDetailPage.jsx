@@ -82,8 +82,8 @@ export default function WellnessDetailPage() {
   const price = priceInfo(w);
   const benefits = Array.isArray(w.benefits) ? w.benefits.filter(Boolean) : [];
   const gradient = gradientFor(w.name);
-  const photo = w.photo ? `/wellness-images/${w.photo}` : null;
-  const thumb = w.thumbnail ? `/wellness-images/${w.thumbnail}` : null;
+  const photo = w.photo ? `/uploads/${w.photo}` : null;
+  const thumb = w.thumbnail ? `/uploads/${w.thumbnail}` : null;
   const waMessage = `Hi Healtour, I'd like to book the "${w.name}" wellness package.`;
 
   const seoPath = `/wellness/${w.slug}`;

@@ -6,7 +6,7 @@ import { gradientFor, priceInfo } from "./wellnessMeta";
 /** WellnessCard — wellness package summary linking to its detail page. */
 export default function WellnessCard({ pkg }) {
   const w = pkg;
-  const src = w.photo ? `/wellness-images/${w.photo}` : null;
+  const src = w.photo ? `/uploads/${w.photo}` : null;
   const price = priceInfo(w);
 
   return (

@@ -102,7 +102,7 @@ export default function ArticleDetailPage({ kind }) {
 
   const a = article;
   const html = sanitizeHtml(a.contentHtml);
-  const src = a.photo ? `/${cfg.assetDir}/${a.photo}` : null;
+  const src = a.photo ? `/uploads/${a.photo}` : null;
 
   const seoPath = `${cfg.basePath}/${a.slug}`;
 

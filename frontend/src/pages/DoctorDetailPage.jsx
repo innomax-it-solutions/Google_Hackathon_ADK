@@ -47,12 +47,14 @@ export default function DoctorDetailPage() {
   const [doctor, setDoctor] = useState(undefined); // undefined=loading, null=not found
   const [treatments, setTreatments] = useState([]);
   const [related, setRelated] = useState([]);
+  const [photoOk, setPhotoOk] = useState(true);
 
   useEffect(() => {
     let alive = true;
     setDoctor(undefined);
     setTreatments([]);
     setRelated([]);
+    setPhotoOk(true);
     window.scrollTo({ top: 0 });
 
     getDoctorBySlug(slug)
@@ -125,6 +127,7 @@ export default function DoctorDetailPage() {
   }
 
   const d = doctor;
+  const photo = d.photo ? `/uploads/${d.photo}` : null;
   const bioHtml = sanitizeHtml(d.bioHtml);
   const interestsHtml = sanitizeHtml(d.interests);
   const departments = d.departments || [];
@@ -172,8 +175,18 @@ export default function DoctorDetailPage() {
             </nav>
 
             <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-              <span className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-3xl bg-white/20 font-display text-2xl font-extrabold backdrop-blur-sm">
-                {docInitials(d.name)}
+              <span className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-white/20 font-display text-2xl font-extrabold backdrop-blur-sm">
+                {photo && photoOk ? (
+                  <img
+                    src={photo}
+                    alt={d.name}
+                    loading="lazy"
+                    onError={() => setPhotoOk(false)}
+                    className="h-full w-full rounded-3xl object-cover"
+                  />
+                ) : (
+                  docInitials(d.name)
+                )}
               </span>
               <div className="min-w-0">
                 <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{d.name}</h1>

@@ -42,7 +42,7 @@ export default function HospitalGallery({ hospital }) {
   const h = hospital;
   const gradient = deptGradient(h.name);
   // Forward-looking asset path; falls back gracefully until images are added.
-  const photoSrc = h.photo ? `/hospital-photos/${h.photo}` : null;
+  const photoSrc = h.photo ? `/uploads/${h.photo}` : null;
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:grid-rows-2">

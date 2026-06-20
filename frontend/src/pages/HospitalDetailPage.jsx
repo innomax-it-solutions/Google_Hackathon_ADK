@@ -67,12 +67,14 @@ export default function HospitalDetailPage() {
   const [hospital, setHospital] = useState(undefined); // undefined=loading, null=not found
   const [doctors, setDoctors] = useState([]);
   const [treatments, setTreatments] = useState([]);
+  const [photoOk, setPhotoOk] = useState(true);
 
   useEffect(() => {
     let alive = true;
     setHospital(undefined);
     setDoctors([]);
     setTreatments([]);
+    setPhotoOk(true);
     window.scrollTo({ top: 0 });
 
     getHospitalBySlug(slug)
@@ -132,6 +134,7 @@ export default function HospitalDetailPage() {
   }
 
   const h = hospital;
+  const photo = h.photo ? `/uploads/${h.photo}` : null;
   const bodyHtml = sanitizeHtml(h.descriptionHtml);
   const depts = h.departments || [];
   const stats = hospitalStats(h);
@@ -172,8 +175,18 @@ export default function HospitalDetailPage() {
             </nav>
 
             <div className="mt-6 flex items-start gap-4">
-              <span className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white/20 font-display text-xl font-extrabold backdrop-blur-sm">
-                {initials(h.name)}
+              <span className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/20 font-display text-xl font-extrabold backdrop-blur-sm">
+                {photo && photoOk ? (
+                  <img
+                    src={photo}
+                    alt={h.name}
+                    loading="lazy"
+                    onError={() => setPhotoOk(false)}
+                    className="h-full w-full rounded-2xl object-cover"
+                  />
+                ) : (
+                  initials(h.name)
+                )}
               </span>
               <div className="min-w-0">
                 {isAccredited(h) && (

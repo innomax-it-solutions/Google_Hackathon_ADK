@@ -123,7 +123,7 @@ export function articleSchema(a, path, { assetDir } = {}) {
     headline: a.title,
     description: text(a.excerpt).slice(0, 300),
     url: absUrl(path),
-    ...(a.photo && assetDir ? { image: absUrl(`/${assetDir}/${a.photo}`) } : {}),
+    ...(a.photo ? { image: absUrl(`/uploads/${a.photo}`) } : {}),
     ...(toISODate(a.date) ? { datePublished: toISODate(a.date) } : {}),
     ...(a.publisher ? { author: { "@type": "Person", name: a.publisher } } : {}),
     ...(a.category ? { articleSection: a.category } : {}),

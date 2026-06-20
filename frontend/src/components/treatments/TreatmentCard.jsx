@@ -1,29 +1,28 @@
 import { Link } from "react-router-dom";
 import { Clock, BedDouble, ArrowRight } from "lucide-react";
-import Icon from "../ui/Icon";
+import MediaImage from "../content/MediaImage";
 import { deptIcon, deptGradient, durationLabel, stayLabel } from "./treatmentMeta";
 
 /**
- * TreatmentCard — compact treatment summary used in grids. No external image
- * assets exist for treatments, so the header is a specialty-coloured gradient
- * with the department icon (consistent with the hospital/partner visuals).
+ * TreatmentCard — compact treatment summary used in grids. Shows the treatment
+ * photo when available, falling back to a specialty-coloured gradient with the
+ * department icon (consistent with the hospital/partner visuals).
  */
 export default function TreatmentCard({ treatment }) {
   const t = treatment;
   const duration = durationLabel(t);
   const stay = stayLabel(t);
+  const src = t.photo ? `/uploads/${t.photo}` : null;
 
   return (
     <Link
       to={`/treatments/${t.slug}`}
       className="card card-hover group flex h-full flex-col overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     >
-      <div className={`relative flex h-24 items-center justify-between bg-gradient-to-br ${deptGradient(t.department)} px-5`}>
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-white backdrop-blur-sm">
-          <Icon name={deptIcon(t.department)} className="h-6 w-6" />
-        </span>
+      <div className="relative aspect-[16/9] overflow-hidden">
+        <MediaImage src={src} alt={t.name} gradient={deptGradient(t.department)} icon={deptIcon(t.department)} label={t.name} />
         {t.department && (
-          <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+          <span className="absolute left-3 top-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
             {t.department}
           </span>
         )}

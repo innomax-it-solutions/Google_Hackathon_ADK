@@ -1,8 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
-  base: "/MVTBridge/frontend/",
+export default defineConfig(({ command }) => ({
+  // Subdirectory base ONLY for production builds (the sister-company cPanel
+  // deploy serves the app from /MVTBridge/frontend/). Local dev runs at the
+  // root so http://localhost:5173/ and /doctors work without the subpath.
+  base: command === "build" ? "/MVTBridge/frontend/" : "/",
 
   plugins: [react()],
 
@@ -35,4 +38,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

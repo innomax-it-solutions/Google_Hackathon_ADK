@@ -9,7 +9,7 @@ import { gradientFor, formatDate, stripTags } from "./contentMeta";
  */
 export default function ArticleCard({ article, basePath, assetDir, icon = "FileText" }) {
   const a = article;
-  const src = a.photo ? `/${assetDir}/${a.photo}` : null;
+  const src = a.photo ? `/uploads/${a.photo}` : null;
   const excerpt = stripTags(a.excerpt).slice(0, 160);
 
   return (

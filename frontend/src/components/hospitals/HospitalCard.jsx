@@ -1,26 +1,39 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, BedDouble, Stethoscope, ShieldCheck, ArrowRight } from "lucide-react";
 import { initials, deptGradient, shortLocation, isAccredited } from "./hospitalMeta";
 
 /**
- * HospitalCard — compact hospital summary for grids. No hospital photos are
- * bundled, so the header is a gradient monogram (consistent with the rest of
- * the directory visuals).
+ * HospitalCard — compact hospital summary for grids. The header shows the
+ * hospital photo when available, falling back to a gradient monogram
+ * (consistent with the rest of the directory visuals).
  */
 export default function HospitalCard({ hospital }) {
   const h = hospital;
   const location = shortLocation(h);
   const depts = h.departments || [];
+  const photo = h.photo ? `/uploads/${h.photo}` : null;
+  const [ok, setOk] = useState(Boolean(photo));
 
   return (
     <Link
       to={`/hospitals/${h.slug}`}
       className="card card-hover group flex h-full flex-col overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     >
-      <div className={`relative flex h-28 items-center gap-4 bg-gradient-to-br ${deptGradient(h.name)} px-5`}>
-        <span className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white/20 font-display text-xl font-extrabold tracking-tight text-white backdrop-blur-sm">
-          {initials(h.name)}
-        </span>
+      <div className={`relative flex h-28 items-center gap-4 overflow-hidden bg-gradient-to-br ${deptGradient(h.name)} px-5`}>
+        {ok ? (
+          <img
+            src={photo}
+            alt={h.name}
+            loading="lazy"
+            onError={() => setOk(false)}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <span className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white/20 font-display text-xl font-extrabold tracking-tight text-white backdrop-blur-sm">
+            {initials(h.name)}
+          </span>
+        )}
         {isAccredited(h) && (
           <span className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
             <ShieldCheck className="h-3 w-3" /> Accredited

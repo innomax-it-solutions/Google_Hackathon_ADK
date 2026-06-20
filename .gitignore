@@ -1,3 +1,4 @@
+
 # --- Python ---
 __pycache__/
 *.py[cod]
@@ -65,7 +66,20 @@ image.png
 
 # --- Legacy Healtour PHP project (migration reference/source only) ---
 # The React app in frontend/ is the primary application. The legacy PHP site
-# under healtour/ is kept locally only as a migration reference; ignore it
-# entirely so no legacy files, uploads, logs, cache or generated output are
-# ever committed. (healtour/ is also its own nested git repo.)
-healtour/
+# (including the MySQL dump under healtour/old/) is kept locally only as a
+# migration reference; ignore the ROOT-anchored healtour/ entirely so no legacy
+# files, uploads, logs, cache or the SQL dump are ever committed. The leading
+# slash anchors this to the repo root so it does NOT match the committed app
+# data at frontend/src/data/healtour/ (the generated content JSON the app reads).
+/healtour/
+
+# --- Legacy Healtour media kept locally for migration (NOT committed) ---
+# assets/uploads/ holds the original content images the data JSON references
+# (photo fields); uploads/ holds extra gallery images. Kept on disk only as the
+# source for phase-2 image wiring. Phase 2 will copy ONLY referenced images into
+# frontend/public/ (or a CDN); these raw legacy folders must never be committed.
+/assets/
+/uploads/
+
+# Served copy of legacy content images (mirrors assets/uploads/; regenerable).
+/frontend/public/uploads/
