@@ -416,14 +416,14 @@ export default function JourneyPlanCard({
       initial={reduce ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: EASE }}
-      className="bg-[var(--color-surface)] rounded-2xl shadow-card-hover border border-[var(--color-border)] overflow-hidden"
+      className="journey-card bg-[var(--color-surface)] rounded-2xl shadow-card-hover border border-[var(--color-border)] overflow-hidden"
     >
       <PatientHeader intake={intake} isLoading={isLoading} />
 
       <div className="bg-[var(--color-bg)] p-4 sm:p-5 space-y-4">
         {booking && <BookingBanner booking={booking} />}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <div className="journey-grid">
           <Panel {...coord("hospitals")} icon={<IconHospital />} title="Recommended hospitals" data={hospital} isLoading={isLoading}
             render={(expanded) => (
               <HospitalsBody
@@ -465,7 +465,7 @@ export default function JourneyPlanCard({
           <Panel {...coord("checklist")} icon={<IconChecklist />} title="Travel checklist" data={docs} isLoading={isLoading}
             render={(expanded) => <ChecklistBody docs={docs} expanded={expanded} reduce={reduce} />} />
 
-          <Panel {...coord("timeline")} icon={<IconTimeline />} title="Timeline" data={costPanelData} isLoading={initialSkeleton} className="lg:col-span-2"
+          <Panel {...coord("timeline")} icon={<IconTimeline />} title="Timeline" data={costPanelData} isLoading={initialSkeleton}
             render={(expanded) => costFetching
               ? <ProgressSteps steps={["Preparing recovery timeline"]} />
               : <SwapIn k={selectedId}><TimelineBody cost={selCost} procedureLabel={procedureLabel} expanded={expanded} reduce={reduce} /></SwapIn>} />
@@ -689,11 +689,12 @@ function Panel({
       onFocus={hasData ? onActivate : undefined}
       onBlur={hasData ? (e) => { if (!e.currentTarget.contains(e.relatedTarget)) onDeactivate(); } : undefined}
       onClick={hasData ? onToggle : undefined}
-      animate={reduce
-        ? { opacity: dimmed ? 0.7 : 1 }
-        : { scale: active ? 1.012 : dimmed ? 0.985 : 1, opacity: dimmed ? 0.62 : 1, y: active ? -2 : 0 }}
-      transition={{ duration: 0.28, ease: EASE }}
-      style={{ willChange: "transform" }}
+      // Dim siblings only — no scale/translate. Transforms change the pointer
+      // hit-area, which made adjacent panels flicker on hover near their edges
+      // (and pushed panels past the card's clipped edge). Emphasis now comes from
+      // the border, shadow, and accent bar in the className below.
+      animate={{ opacity: dimmed ? (reduce ? 0.7 : 0.6) : 1 }}
+      transition={{ duration: 0.2, ease: EASE }}
       className={`group relative rounded-xl border p-4 outline-none cursor-default
         bg-[var(--color-surface)] transition-[box-shadow,border-color] duration-300
         ${active

@@ -298,5 +298,32 @@
     table  { @apply w-full text-sm border-collapse my-3 rounded-xl overflow-hidden; }
     th, td { @apply px-3 py-2 text-left text-[13px]; border: 1px solid var(--color-border); }
     th     { @apply font-medium text-[var(--color-text-secondary)]; background: var(--color-surface-2); }
+    /* Keep plain narrative replies at a comfortable reading width even when the
+       chat column is wide (the structured cards use the full width instead). */
+    max-width: 46rem;
+  }
+
+  /* Journey Plan dashboard: make it a query container so its panel grid reflows
+     by the CARD's own width — correct in chat, the form preview, and wishlist
+     regardless of the viewport. Wider + fewer rows = less scrolling. */
+  .journey-card { container: journey / inline-size; }
+  /* Masonry packing via CSS multi-column. The panels have uneven heights, so a
+     row-based grid leaves a gap under every SHORT panel — its row track is sized
+     by the TALLEST panel in that row, and the short one can't pull up content
+     from the next row. Columns instead let each panel sit directly under the
+     previous one in its column, so there are no vertical gaps. One column when
+     the card is narrow, two on a wide card. break-inside keeps a panel whole
+     (never split across the column break); the row gap comes from margin-bottom
+     since column layout has no `row-gap`. */
+  .journey-grid {
+    column-count: 1;
+    column-gap: 1rem;
+  }
+  .journey-grid > * {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+  @container journey (min-width: 640px) {
+    .journey-grid { column-count: 2; }
   }
 }

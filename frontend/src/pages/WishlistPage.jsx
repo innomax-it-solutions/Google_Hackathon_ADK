@@ -51,7 +51,7 @@ export default function WishlistPage() {
           </div>
 
           {items.length === 0 ? (
-            <EmptyState onFind={() => navigate("/Form")} />
+            <EmptyState onFind={() => navigate("/form")} />
           ) : (
             <ul className="space-y-4">
               <AnimatePresence initial={false}>

@@ -15,7 +15,7 @@ export default function ChatWindow({ messages }) {
       aria-live="polite"
       aria-label="Conversation"
     >
-      <div className="max-w-chat mx-auto py-8 space-y-7">
+      <div className="max-w-[64rem] mx-auto py-8 space-y-7">
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}

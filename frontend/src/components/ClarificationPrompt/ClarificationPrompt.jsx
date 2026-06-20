@@ -70,7 +70,7 @@ export default function ClarificationPrompt({ fields, onComplete, onDismiss }) {
 
   return (
     <div className="flex-shrink-0 px-3 sm:px-6 pb-1 pt-1">
-      <div className="max-w-[860px] mx-auto" onKeyDown={onKeyDown}>
+      <div className="max-w-[64rem] mx-auto" onKeyDown={onKeyDown}>
         <AnimatePresence mode="wait">
           <motion.div
             key={field}

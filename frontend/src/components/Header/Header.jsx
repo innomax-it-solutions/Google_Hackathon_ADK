@@ -146,7 +146,7 @@ export default function Header() {
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => navigate("/Form")}
+                onClick={() => navigate("/form")}
                 className="gap-1.5"
               >
                 <FormIcon className="w-3.5 h-3.5" />

@@ -169,7 +169,7 @@ export default function Composer() {
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
     >
-      <div className="max-w-[860px] mx-auto">
+      <div className="max-w-[64rem] mx-auto">
 
         {/* Drop zone indicator */}
         <AnimatePresence>
