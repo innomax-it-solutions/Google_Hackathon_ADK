@@ -4,12 +4,12 @@ import SectionHeading from "../ui/SectionHeading";
 import Reveal from "../ui/Reveal";
 import { COMPARISON } from "../../data/landingData";
 
-export default function WhyMedBridge() {
+export default function WhyHealtour() {
   return (
     <section id="why" className="section-pad">
       <div className="container-x">
         <SectionHeading
-          eyebrow="Why MVT Bridge"
+          eyebrow="Why Healtour"
           icon={<Scale className="h-3.5 w-3.5" />}
           title="The intelligent alternative to manual coordination"
           subtitle="Everything that makes medical tourism stressful — solved by one coordinated AI agent."
@@ -40,7 +40,7 @@ export default function WhyMedBridge() {
             </div>
           </Reveal>
 
-          {/* MVT Bridge */}
+          {/* Healtour */}
           <Reveal delay={0.1}>
             <div className="relative h-full overflow-hidden rounded-3xl border border-brand-100 bg-gradient-to-br from-brand-600 to-accent-600 p-7 text-white shadow-glow">
               <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />

@@ -46,7 +46,7 @@ export default function Testimonials() {
           eyebrow="Patient Stories"
           icon={<MessageSquareHeart className="h-3.5 w-3.5" />}
           title="Trusted by patients around the world"
-          subtitle="International patients who planned their treatment journey with MVT Bridge."
+          subtitle="International patients who planned their treatment journey with Healtour."
         />
 
         <motion.div

@@ -5,6 +5,7 @@ import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
 import AuthField from "../components/auth/AuthField";
 import FormAlert from "../components/auth/FormAlert";
+import Seo from "../components/seo/Seo";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ui/Toast";
 import { validateEmail, validatePassword } from "../utils/validation";
@@ -65,9 +66,11 @@ export default function Login() {
   };
 
   return (
+    <>
+      <Seo title="Sign In" path="/login" noindex />
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to continue to your MVT Bridge workspace."
+      subtitle="Sign in to continue to your Healtour workspace."
       footer={
         <>
           Don&apos;t have an account?{" "}
@@ -147,5 +150,6 @@ export default function Login() {
         </motion.button>
       </form>
     </AuthLayout>
+    </>
   );
 }

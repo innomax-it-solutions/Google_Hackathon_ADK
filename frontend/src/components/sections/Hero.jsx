@@ -1,10 +1,92 @@
-import { useRef } from "react";
-import { Link } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Building2, Sparkles } from "lucide-react";
+import { Sparkles, Search, MessageCircle, Stethoscope } from "lucide-react";
 import Icon from "../ui/Icon";
+import SearchableSelect from "../ui/SearchableSelect";
 import { HERO_STATS } from "../../data/landingData";
+import { SPECIALTIES, whatsappLink } from "../../data/shellData";
 import BenefitsCircleStage from "./BenefitsCircle";
+
+const SPECIALTY_OPTIONS = SPECIALTIES.map((s) => ({ value: s.slug, label: s.name }));
+
+/**
+ * HeroSearch — primary entry point: pick a specialty and/or type a treatment,
+ * then jump to the relevant directory/search route. Routes are forward-looking
+ * (directory pages land in a later phase). Includes a WhatsApp CTA.
+ */
+function HeroSearch() {
+  const [specialty, setSpecialty] = useState("");
+  const [treatment, setTreatment] = useState("");
+  const navigate = useNavigate();
+
+  function onSubmit(e) {
+    e.preventDefault();
+    const q = treatment.trim();
+    if (q) {
+      const prefix = specialty ? `${specialty} ` : "";
+      navigate(`/search?q=${encodeURIComponent(prefix + q)}`);
+    } else if (specialty) {
+      navigate(`/specialties/${specialty}`);
+    } else {
+      navigate("/search");
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.25 }}
+      className="mt-8"
+    >
+      <form
+        onSubmit={onSubmit}
+        className="rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-soft backdrop-blur dark:border-white/10 dark:bg-white/[0.04]"
+      >
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <SearchableSelect
+              value={specialty}
+              onChange={setSpecialty}
+              options={SPECIALTY_OPTIONS}
+              placeholder="Choose a specialty"
+              searchPlaceholder="Search specialties…"
+            />
+          </div>
+          <div className="relative flex-1">
+            <Stethoscope className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+            <input
+              type="text"
+              value={treatment}
+              onChange={(e) => setTreatment(e.target.value)}
+              placeholder="Search a treatment or procedure"
+              aria-label="Search a treatment"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5 pl-10 pr-3.5 text-[14px] text-ink transition-colors placeholder:text-ink-muted focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200 dark:focus:ring-brand-900"
+            />
+          </div>
+          <button type="submit" className="btn-primary sm:w-auto">
+            <Search className="h-4 w-4" /> Search
+          </button>
+        </div>
+      </form>
+
+      <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap lg:items-start">
+        <Link to="/chat" className="btn-secondary w-full sm:w-auto">
+          <Sparkles className="h-4 w-4" /> Plan with Healtour AI
+        </Link>
+        <a
+          href={whatsappLink()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-600 sm:w-auto"
+        >
+          <MessageCircle className="h-4 w-4" /> Chat on WhatsApp
+        </a>
+      </div>
+    </motion.div>
+  );
+}
 
 function AnimatedBackground() {
   return (
@@ -134,24 +216,12 @@ export default function Hero() {
               transition={{ duration: 0.6, delay: 0.15 }}
               className="mt-5 text-lg leading-relaxed text-ink-muted"
             >
-              MVT Bridge helps international patients find trusted hospitals, estimate treatment
+              Healtour helps international patients find trusted hospitals, estimate treatment
               costs, and coordinate every step of their medical travel journey with AI-powered
               guidance.
             </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.25 }}
-              className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap lg:items-start"
-            >
-              <Link to="/chat" className="btn-primary w-full sm:w-auto">
-                Explore Your Journey <ArrowRight className="h-4 w-4" />
-              </Link>
-              <a href="#hospitals" className="btn-secondary w-full sm:w-auto">
-                <Building2 className="h-4 w-4" /> View Hospitals
-              </a>
-            </motion.div>
+            <HeroSearch />
           </motion.div>
 
           <motion.div

@@ -27,7 +27,7 @@ export default function AboutHealtour() {
           <div>
             <Reveal>
               <h2 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-                About <span className="text-brand-600 dark:text-brand-400">MVT Bridge</span>
+                About <span className="text-brand-600 dark:text-brand-400">Healtour</span>
               </h2>
               <p className="mt-5 text-base leading-relaxed text-ink-muted sm:text-lg">
                 {ABOUT_HEALTOUR.description}

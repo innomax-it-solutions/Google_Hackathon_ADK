@@ -62,3 +62,10 @@ image.png
 /hospital_registry.json
 /cost_matrix.json
 /country_doc_rules.json
+
+# --- Legacy Healtour PHP project (migration reference/source only) ---
+# The React app in frontend/ is the primary application. The legacy PHP site
+# under healtour/ is kept locally only as a migration reference; ignore it
+# entirely so no legacy files, uploads, logs, cache or generated output are
+# ever committed. (healtour/ is also its own nested git repo.)
+healtour/
