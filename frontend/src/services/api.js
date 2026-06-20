@@ -10,6 +10,40 @@ import { streamChat, streamIntake, estimateHospital } from "./ai/provider";
 /** WebSocket URL for live voice transcription. */
 export { transcribeSocketUrl } from "./ai/provider";
 
+// --- Auth (register / login) ------------------------------------------------
+// Same base-URL convention as services/ai/provider.js: empty in dev (Vite proxy
+// forwards /auth → backend) and VITE_API_URL in production builds.
+const AUTH_BASE = import.meta.env.VITE_API_URL ?? "";
+
+async function postJson(path, body) {
+  const res = await fetch(`${AUTH_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    // FastAPI puts the message on `detail` (string or [{msg}] for validation).
+    const detail = data.detail;
+    const msg = Array.isArray(detail) ? detail[0]?.msg : detail;
+    throw new Error(msg || data.message || "Request failed. Please try again.");
+  }
+  return data;
+}
+
+/** Create an account → { token, user }. */
+export function registerUser(payload) {
+  return postJson("/auth/register", payload);
+}
+
+/** Sign in → { token, user }. */
+export function loginUser(email, password) {
+  return postJson("/auth/login", { email, password });
+}
+
+/** Analyse a medical report (PDF/image) → structured analysis for the side panel. */
+export { analyzeReport } from "./ai/provider";
+
 export function sendChatMessage(sessionId, message, language, handlers) {
   return streamChat({ sessionId, message, language }, handlers);
 }

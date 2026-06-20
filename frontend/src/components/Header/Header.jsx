@@ -3,6 +3,7 @@ import { useState, useEffect }    from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useChatContext } from "../../context/ChatContext";
 import { useWishlist }    from "../../context/WishlistContext";
+import { useAuth }        from "../../context/AuthContext";
 import { useTheme }       from "../../context/ThemeContext";
 import { useToast }       from "../../context/ToastContext";
 import { useLanguage }    from "../../context/LanguageContext";
@@ -40,6 +41,7 @@ function useBackendStatus() {
 export default function Header() {
   const { clearConversation, messages }          = useChatContext();
   const { count: wishlistCount }                  = useWishlist();
+  const { user, logout }                          = useAuth();
   const { isDark, toggle }                        = useTheme();
   const { toast }                                 = useToast();
   const { language, setLanguage, languages }      = useLanguage();
@@ -57,6 +59,11 @@ export default function Header() {
       ? firstUser.content.slice(0, 44) + "…"
       : firstUser.content
     : null;
+
+  function handleSignOut() {
+    logout();
+    navigate("/login");
+  }
 
   function exportConversation() {
     const text = messages
@@ -241,7 +248,7 @@ export default function Header() {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>MedBridge</DropdownMenuLabel>
+              <DropdownMenuLabel>{user?.email || "MVT Bridge"}</DropdownMenuLabel>
               <DropdownMenuSeparator />
 
               {hasMessages && (
@@ -259,7 +266,6 @@ export default function Header() {
                   >
                     Export conversation
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     icon={<TrashIcon className="w-4 h-4" />}
                     onClick={clearConversation}
@@ -267,14 +273,17 @@ export default function Header() {
                   >
                     Clear conversation
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                 </>
               )}
 
-              {!hasMessages && (
-                <DropdownMenuItem disabled icon={<ChatIcon className="w-4 h-4" />}>
-                  No conversation yet
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem
+                icon={<LogoutIcon className="w-4 h-4" />}
+                onClick={handleSignOut}
+                destructive
+              >
+                Sign out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -296,3 +305,4 @@ const GlobeIcon    = ({ className }) => <svg className={className} fill="none" v
 const CheckIcon    = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" /></svg>;
 const FormIcon     = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6 4h4" /></svg>;
 const WishlistIcon = ({ className, filled }) => <svg className={className} fill={filled ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>;
+const LogoutIcon   = ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7M13 16v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;

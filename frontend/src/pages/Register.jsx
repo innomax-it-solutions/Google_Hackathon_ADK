@@ -7,6 +7,7 @@ import AuthField from "../components/auth/AuthField";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ui/Toast";
 import { COUNTRIES } from "../constants/countries";
+import { writeProfile } from "../utils/profile";
 import {
   validateEmail,
   validateRequired,
@@ -65,7 +66,7 @@ function CountrySelect({ value, onChange, onBlur, error }) {
 }
 
 export default function Register() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, register } = useAuth();
   const { show } = useToast();
   const navigate = useNavigate();
 
@@ -80,7 +81,7 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to="/chat" replace />;
 
   const setField = (key) => (e) => {
     const val = e.target.value;
@@ -122,11 +123,30 @@ export default function Register() {
     if (Object.keys(next).length) return;
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    const result = await register({
+      name: values.fullName.trim(),
+      email: values.email.trim(),
+      phone: values.phone.trim(),
+      country: values.country,
+      password: values.password,
+    });
     setLoading(false);
 
-    // UI-only: nothing is persisted or sent anywhere.
-    show("Demo mode enabled — registration backend not connected.", { type: "info" });
+    if (!result.ok) {
+      setErrors((prev) => ({ ...prev, email: result.error }));
+      show(result.error, { type: "error" });
+      return;
+    }
+
+    // Seed the local patient profile so the intake form prefills for the new user.
+    writeProfile(result.user.email, {
+      fullName: values.fullName.trim(),
+      phone: values.phone.trim(),
+      origin_country: values.country,
+    });
+
+    show("Account created — welcome to MVT Bridge!", { type: "success" });
+    navigate("/chat", { replace: true });
   };
 
   const strength = passwordStrength(values.password);
@@ -253,7 +273,7 @@ export default function Register() {
         </motion.button>
 
         <p className="text-center text-xs leading-relaxed text-ink-muted">
-          This is a demo environment — no account is actually created and no data is stored.
+          By creating an account you agree to our Terms and Privacy Policy.
         </p>
       </form>
     </AuthLayout>

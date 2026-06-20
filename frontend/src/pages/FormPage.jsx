@@ -19,6 +19,9 @@ import { COUNTRIES }      from "../constants/countries";
 import { TREATMENT_GROUPS } from "../constants/treatments";
 import { SUPPORT_LANGUAGES } from "../constants/languages";
 import { useLanguage }    from "../context/LanguageContext";
+import { useProfile }     from "../context/ProfileContext";
+import { useDocuments }   from "../context/DocumentContext";
+import { profileToIntake } from "../utils/profile";
 import { submitIntakeForm } from "../services/api";
 import { cn }             from "../lib/utils";
 
@@ -115,8 +118,12 @@ function validateAll(form) {
 
 export default function FormPage() {
   const { language } = useLanguage();
+  const { profile }  = useProfile();
+  const { latest }   = useDocuments();
 
-  const [form, setForm]       = useState(INITIAL_FORM);
+  // Seed the intake from the saved profile (+ the latest analysed report's
+  // condition, if any). Only filled profile fields override INITIAL_FORM.
+  const [form, setForm]       = useState(() => ({ ...INITIAL_FORM, ...profileToIntake(profile, latest) }));
   const [errors, setErrors]   = useState({});
   const [touched, setTouched] = useState({});
 

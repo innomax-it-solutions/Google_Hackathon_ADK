@@ -1,39 +1,16 @@
 /**
- * Frontend-only demo authentication helpers.
+ * Auth session storage — holds the JWT + user returned by the backend.
  *
- * There is NO backend, API, JWT, or database here. The "login" simply
- * compares what the user typed against static credentials provided via Vite
- * environment variables, and persists a small flag in Web Storage so the
- * session survives reloads.
+ * The actual register/login network calls live in services/api.js; this module
+ * only persists the resulting `{ token, user }` so the session survives reloads.
+ * "Remember me" chooses localStorage (survives browser restarts) vs
+ * sessionStorage (cleared on tab close); the other store is always cleared so
+ * the two never disagree.
  */
-
-// Vite exposes only VITE_-prefixed vars to client code. Read once at module load.
-const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim();
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? "";
 
 const AUTH_KEY = "medbridge-auth";
 
-/** True when demo credentials have been configured in the environment. */
-export function credentialsConfigured() {
-  return Boolean(ADMIN_EMAIL && ADMIN_PASSWORD);
-}
-
-/**
- * The configured demo credentials, used purely to offer a one-click
- * "fill demo credentials" affordance on the login screen. Values come from
- * the environment — they are never hardcoded in components.
- */
-export function getDemoCredentials() {
-  return { email: ADMIN_EMAIL, password: ADMIN_PASSWORD };
-}
-
-/** Case-insensitive email match; exact password match. */
-export function validateCredentials(email, password) {
-  const entered = (email ?? "").trim().toLowerCase();
-  return entered === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD;
-}
-
-/** Read a persisted demo session from local or session storage (if any). */
+/** Read the persisted session ({ token, user }) from local or session storage. */
 export function readStoredAuth() {
   if (typeof window === "undefined") return null;
   try {
@@ -42,26 +19,27 @@ export function readStoredAuth() {
       window.sessionStorage.getItem(AUTH_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && parsed.email ? parsed : null;
+    return parsed && parsed.token && parsed.user ? parsed : null;
   } catch {
     return null;
   }
 }
 
-/**
- * Persist the demo session. When `remember` is true we use localStorage
- * (survives browser restarts); otherwise sessionStorage (cleared on tab close).
- * The other store is cleared so the two never disagree.
- */
-export function writeStoredAuth(user, remember) {
+/** The bare JWT, for the Authorization header on authenticated requests. */
+export function getToken() {
+  return readStoredAuth()?.token || null;
+}
+
+/** Persist the session. `remember` → localStorage, else sessionStorage. */
+export function writeStoredAuth(session, remember) {
   if (typeof window === "undefined") return;
   const primary = remember ? window.localStorage : window.sessionStorage;
   const secondary = remember ? window.sessionStorage : window.localStorage;
-  primary.setItem(AUTH_KEY, JSON.stringify(user));
+  primary.setItem(AUTH_KEY, JSON.stringify(session));
   secondary.removeItem(AUTH_KEY);
 }
 
-/** Clear the demo session from both stores. */
+/** Clear the session from both stores. */
 export function clearStoredAuth() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(AUTH_KEY);

@@ -10,6 +10,8 @@ import { ToastProvider } from "./context/ToastContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { ChatProvider } from "./context/ChatContext";
 import { WishlistProvider } from "./context/WishlistContext";
+import { ProfileProvider } from "./context/ProfileContext";
+import { DocumentProvider } from "./context/DocumentContext";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -21,11 +23,15 @@ createRoot(document.getElementById("root")).render(
             {/* Chat toasts + language + chat state (our app) */}
             <ToastProvider>
               <LanguageProvider>
-                <ChatProvider>
-                  <WishlistProvider>
-                    <App />
-                  </WishlistProvider>
-                </ChatProvider>
+                <ProfileProvider>
+                  <ChatProvider>
+                    <DocumentProvider>
+                      <WishlistProvider>
+                        <App />
+                      </WishlistProvider>
+                    </DocumentProvider>
+                  </ChatProvider>
+                </ProfileProvider>
               </LanguageProvider>
             </ToastProvider>
           </UIToastProvider>

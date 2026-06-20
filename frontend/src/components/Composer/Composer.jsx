@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChatContext } from "../../context/ChatContext";
+import { useDocuments, isAnalyzable } from "../../context/DocumentContext";
 import { useToast }       from "../../context/ToastContext";
 import { useLanguage }    from "../../context/LanguageContext";
 import { useVoiceDictation } from "../../hooks/useVoiceDictation";
@@ -38,6 +39,7 @@ const PROMPT_LIBRARY = [
 
 export default function Composer() {
   const { sendMessage, stopStream, isStreaming } = useChatContext();
+  const { analyze: analyzeDoc }                  = useDocuments();
   const { toast }                                = useToast();
   const { t }                                    = useLanguage();
 
@@ -142,6 +144,13 @@ export default function Composer() {
     setFiles(prev => [...prev, ...incoming]);
     if (incoming.length) {
       toast({ title: `${incoming.length} file${incoming.length > 1 ? "s" : ""} attached`, variant: "success" });
+    }
+    // A medical report (PDF/image) is analysed immediately; its AI summary
+    // streams into the side panel's Report tab on the right of the chat.
+    const report = incoming.find(isAnalyzable);
+    if (report) {
+      analyzeDoc(report);
+      toast({ title: "Analysing your report…", description: "See the Report panel for results.", variant: "default" });
     }
   }
 

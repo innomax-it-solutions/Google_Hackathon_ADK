@@ -4,3 +4,12 @@ fastapi>=0.110.0
 uvicorn[standard]>=0.27.0
 pydantic>=2.6.0
 python-dotenv>=1.0.0
+# Required by FastAPI to parse multipart/form-data uploads (POST /analyze_report).
+python-multipart>=0.0.9
+# --- Auth (register/login) ---
+# Firestore-backed user store, JWT sessions, bcrypt hashing. email-validator
+# backs pydantic's EmailStr. Firestore uses the same ADC as Vertex AI.
+google-cloud-firestore>=2.16.0
+PyJWT>=2.8.0
+bcrypt>=4.1.0
+email-validator>=2.1.0

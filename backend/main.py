@@ -23,7 +23,7 @@ _env_file = Path(__file__).resolve().parent / ".env"
 load_dotenv(_env_file, override=True)
 
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from google.adk.runners import Runner
@@ -32,8 +32,10 @@ from google.genai import types
 from pydantic import BaseModel
 
 from .agent import root_agent
+from .auth import router as auth_router, seed_demo_admin
 from .city_airports import iata_for_city
 from .contract import IntakeRequest, hospital_by_id
+from .report_analyzer import analyze_report_bytes
 from .tools.cost_estimator import estimate_cost
 from .tools.flights import flight_search
 from .transcribe_stream import stream_transcribe
@@ -50,6 +52,16 @@ app.add_middleware(
 
 session_service = InMemorySessionService()
 runner = Runner(agent=root_agent, app_name=APP_NAME, session_service=session_service)
+
+# User registration / login (Firestore + JWT). See backend/auth.py.
+app.include_router(auth_router)
+
+
+@app.on_event("startup")
+async def _seed_demo_admin() -> None:
+    # Keep the README demo credentials working through the real login flow.
+    # Run off the event loop so a slow/unreachable DB never delays serving.
+    asyncio.get_event_loop().run_in_executor(None, seed_demo_admin)
 
 
 def _sse(event_type: str, payload: dict) -> str:
@@ -293,6 +305,19 @@ def estimate_hospital(req: EstimateHospitalRequest):
         flight_trace_id=flight_trace_id,
     )
     return {"cost": cost, "flights": flights_payload}
+
+
+@app.post("/analyze_report")
+async def analyze_report(file: UploadFile = File(...)):
+    """Analyse an uploaded medical report (PDF/image) with Gemini and return a
+    structured, patient-friendly summary used by the chat's side panel.
+
+    Decision-support only — the response carries a disclaimer and never replaces
+    a doctor. The genai call is blocking, so it runs off the event loop. Expected
+    failures (bad type, too big, credential/model errors) come back as
+    {status: "error", message} rather than raising, so the client never hangs."""
+    data = await file.read()
+    return await asyncio.to_thread(analyze_report_bytes, data, file.content_type)
 
 
 @app.get("/healthz")

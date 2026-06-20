@@ -57,6 +57,26 @@ export async function estimateHospital(params, signal) {
 }
 
 /**
+ * Analyse a medical report (PDF/image) with the backend's Gemini-powered
+ * /analyze_report endpoint. Returns the structured analysis dict; on an expected
+ * problem the backend returns {status:"error", message} (never throws).
+ * @param {File|Blob} file
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<object>}
+ */
+export async function analyzeReport(file, signal) {
+  const form = new FormData();
+  form.append("file", file, file.name || "report");
+  const res = await fetch(`${BASE_URL}/analyze_report`, {
+    method: "POST",
+    body: form,
+    signal,
+  });
+  if (!res.ok) throw new Error(`analyze_report failed: ${res.status}`);
+  return res.json();
+}
+
+/**
  * WebSocket URL for live voice transcription (POST audio frames, receive
  * transcript events). Derives ws/wss from VITE_API_URL, or falls back to the
  * current origin in dev (Vite proxies /ws/transcribe → the backend).

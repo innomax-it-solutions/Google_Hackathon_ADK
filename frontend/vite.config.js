@@ -5,6 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      // Auth: register / login / me.
+      "/auth": {
+        target: process.env.VITE_API_URL || "http://localhost:8000",
+        changeOrigin: true,
+      },
       "/run": {
         target: process.env.VITE_API_URL || "http://localhost:8000",
         changeOrigin: true,
@@ -22,6 +27,10 @@ export default defineConfig({
         },
       },
       "/estimate_hospital": {
+        target: process.env.VITE_API_URL || "http://localhost:8000",
+        changeOrigin: true,
+      },
+      "/analyze_report": {
         target: process.env.VITE_API_URL || "http://localhost:8000",
         changeOrigin: true,
       },
